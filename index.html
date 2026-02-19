@@ -9,16 +9,18 @@
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Marker Cluster -->
+  <!-- MarkerCluster -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 </head>
 
 <body>
   <header class="topbar">
-    <button id="menuBtn" class="iconBtn" title="Menu" aria-label="Open menu">☰</button>
-    <div class="brand">👑 MapCrown</div>
+    <div class="left">
+      <div class="brand">👑 MapCrown</div>
+    </div>
 
+    <!-- Desktop nav -->
     <nav class="topNav">
       <button class="navLink" data-nav="home" type="button">Home</button>
       <button class="navLink" data-nav="contact" type="button">Contact Us</button>
@@ -26,7 +28,6 @@
     </nav>
 
     <div class="topControls">
-      <!-- Exam Mode -->
       <select id="examMode" title="Exam Mode">
         <option value="general">General</option>
         <option value="upsc">UPSC</option>
@@ -35,13 +36,11 @@
         <option value="ssc">SSC</option>
       </select>
 
-      <!-- India Focus -->
       <label class="toggle">
         <input id="indiaFocus" type="checkbox" />
         <span>India Focus</span>
       </label>
 
-      <!-- Category -->
       <select id="category" title="Category">
         <option value="countries">Countries</option>
         <option value="states">States</option>
@@ -50,32 +49,22 @@
         <option value="mountains">Mountains</option>
       </select>
 
-      <button id="btnFacts" title="Amazing Facts" disabled>✨ Amazing Facts</button>
-      <button id="btnDaily" title="Daily Challenge">Daily</button>
+      <button id="btnFacts" disabled>✨ Facts</button>
+      <button id="btnDaily">Daily</button>
       <button id="btnQuiz">Quiz</button>
       <button id="btnExplore" class="active">Explore</button>
+
+      <!-- Mobile dropdown menu -->
+      <div class="mobileMenuWrap">
+        <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu">☰</button>
+        <div id="mMenu" class="mobileMenu hidden">
+          <button class="mItem" data-nav="home" type="button">🏠 Home</button>
+          <button class="mItem" data-nav="contact" type="button">✉️ Contact Us</button>
+          <button class="mItem" data-nav="about" type="button">👤 About Founder</button>
+        </div>
+      </div>
     </div>
   </header>
-
-  <!-- Drawer Menu -->
-  <div id="menuOverlay" class="overlay hidden" aria-hidden="true"></div>
-  <aside id="menuDrawer" class="drawer hidden" aria-hidden="true">
-    <div class="drawerHead">
-      <div class="drawerBrand">👑 MapCrown</div>
-      <button id="menuClose" class="iconBtn" title="Close" aria-label="Close menu">✕</button>
-    </div>
-
-    <div class="drawerLinks">
-      <button class="drawerItem" data-nav="home" type="button">🏠 Home</button>
-      <button class="drawerItem" data-nav="contact" type="button">✉️ Contact Us</button>
-      <button class="drawerItem" data-nav="about" type="button">👤 About Founder</button>
-    </div>
-
-    <div class="drawerNote">
-      <div class="tinyTitle">Quick Tip</div>
-      <div class="tinyText">Select a place on the map → then tap <b>✨ Amazing Facts</b>.</div>
-    </div>
-  </aside>
 
   <main class="layout" id="home">
     <section class="stage">
@@ -88,7 +77,7 @@
         <button id="panelToggle" type="button">Details</button>
       </div>
 
-      <div class="panelInner">
+      <div class="panelInner" id="panelInner">
         <h2 id="title">Select something</h2>
 
         <div class="card">
@@ -105,21 +94,18 @@
           <div id="details" class="details">Click on map to see details…</div>
         </div>
 
-        <!-- Quiz Card -->
         <div id="quizBox" class="quiz hidden">
           <div class="quizHead">
             <h3>🧠 Quiz</h3>
-            <div class="miniText">
-              Mode: <span id="quizModeText">Map Quiz</span>
-            </div>
+            <div class="miniText">Mode: <span id="quizModeText">Map Quiz</span></div>
           </div>
 
           <div class="quizControls">
             <select id="quizMode" title="Quiz Mode">
               <option value="map">Map Quiz</option>
-              <option value="topic">Topic-wise Quiz</option>
-              <option value="pyq">PYQ Mode</option>
-              <option value="daily">Daily Challenge</option>
+              <option value="topic">Topic-wise</option>
+              <option value="pyq">PYQ</option>
+              <option value="daily">Daily (10)</option>
             </select>
 
             <select id="topicPick" title="Topic" class="hidden">
@@ -149,9 +135,9 @@
         </div>
 
         <p class="hint">
-          ✅ Explore + Details + Amazing Facts<br>
-          ✅ Quiz has Map / Topic / PYQ / Daily Challenge<br>
-          ✅ India Focus filters content when possible
+          ✅ Select something → Details<br>
+          ✅ Then click <b>✨ Facts</b> → Close / Next<br>
+          ✅ Mobile: panel slide-up with Details button
         </p>
       </div>
     </aside>
@@ -164,7 +150,7 @@
     </div>
   </footer>
 
-  <!-- Info Modal (Contact/About) -->
+  <!-- Info Modal -->
   <div id="infoModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modalCard">
       <div class="modalHead">
@@ -182,27 +168,24 @@
         <h3>✨ Amazing Facts</h3>
         <button id="closeFacts" class="btnGhost" type="button">Close</button>
       </div>
-
       <div class="factsTop">
         <div class="factsTitle" id="factsTitle">—</div>
         <div class="factsMeta" id="factsMeta">—</div>
       </div>
-
-      <div class="factsBox" id="factsBox">Select something, then click Amazing Facts.</div>
-
+      <div class="factsBox" id="factsBox">Select something, then click Facts.</div>
       <div class="factsActions">
         <button id="nextFact" type="button">Next Fact ➜</button>
       </div>
     </div>
   </div>
 
-  <!-- Leaflet JS + Cluster -->
+  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script src="app.js"></script>
 
-  <!-- Mobile Details toggle -->
+  <!-- Mobile details bottom-sheet toggle -->
   <script>
     const panel = document.getElementById("panel");
     const btn = document.getElementById("panelToggle");
