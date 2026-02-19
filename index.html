@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Geo Explorer</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Marker Cluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">🌍 Geo Explorer</div>
+
+    <select id="category" title="Category">
+      <option value="countries">Countries</option>
+      <option value="states">States</option>
+      <option value="cities">Cities</option>
+      <option value="rivers">Rivers</option>
+      <option value="mountains">Mountains</option>
+    </select>
+
+    <button id="btnFacts" title="Amazing Facts" disabled>✨ Amazing Facts</button>
+    <button id="btnQuiz">Quiz</button>
+    <button id="btnExplore" class="active">Explore</button>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div id="map" class="stageItem"></div>
+    </section>
+
+    <aside class="panel">
+      <h2 id="title">Select something</h2>
+
+      <div class="card">
+        <div class="krow"><span class="k">Name</span><span id="cName" class="v">—</span></div>
+        <div class="krow"><span class="k">Type</span><span id="cType" class="v">—</span></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="cardHead">
+          <h3>📌 Details</h3>
+          <img id="flag" class="flag hidden" alt="Flag">
+        </div>
+        <div id="details" class="details">Click on map to see details…</div>
+      </div>
+
+      <div id="quizBox" class="quiz hidden">
+        <div class="quizHead">
+          <h3>🧠 MCQ Quiz</h3>
+          <div class="miniText">From: <span id="quizFromText">countries</span></div>
+        </div>
+
+        <p id="qText" class="qText">—</p>
+
+        <div class="mcq">
+          <button class="mcqBtn" data-i="0"></button>
+          <button class="mcqBtn" data-i="1"></button>
+          <button class="mcqBtn" data-i="2"></button>
+          <button class="mcqBtn" data-i="3"></button>
+        </div>
+
+        <p id="qMsg" class="qMsg"></p>
+        <p class="scoreLine">Score: <span id="score">0</span></p>
+      </div>
+
+      <p class="hint">
+        ✅ Click any feature → zoom + clean details.<br>
+        ✅ Then click <b>✨ Amazing Facts</b> for real facts (Wikipedia).<br>
+        ✅ “Raw Data” is available for full GeoJSON keys.
+      </p>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <div class="footerLeft">
+      <div class="footerTitle">Geo Explorer</div>
+      <div class="footerSub">Created by <b>Himanshu Kumar</b></div>
+    </div>
+  </footer>
+
+  <!-- Facts Modal -->
+  <div id="factsModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHead">
+        <h3>✨ Amazing Facts</h3>
+        <button id="closeFacts" class="btnGhost" type="button">Close</button>
+      </div>
+
+      <div class="factsTop">
+        <div class="factsTitle" id="factsTitle">—</div>
+        <div class="factsMeta" id="factsMeta">—</div>
+      </div>
+
+      <div class="factsBox" id="factsBox">Select something, then click Amazing Facts.</div>
+
+      <div class="factsActions">
+        <button id="nextFact" type="button">Next Fact ➜</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS + Cluster -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
