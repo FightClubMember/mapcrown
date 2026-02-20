@@ -2,9 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MapCrown • Geo Explorer</title>
 
+  <!-- ===== SEO START ===== -->
+  <title>MapCrown - World Map Explorer, Quiz & Geography Learning</title>
+  <meta name="description" content="MapCrown is an interactive geography learning platform for UPSC, NDA, CDS, SSC. Explore countries, states, rivers, mountains with quiz and amazing facts." />
+  <meta name="keywords" content="world map, geography learning, map quiz, upsc geography, nda geography, cds geography, ssc geography, countries map, rivers map, mountains map, india map quiz, geography facts" />
+  <meta name="author" content="Himanshu Kumar" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://mapcrown.online/" />
+
+  <!-- Social preview (upload preview.png in repo root) -->
+  <meta property="og:title" content="MapCrown - Explore World Map & Quiz" />
+  <meta property="og:description" content="Learn Geography with Maps, Quiz & Facts. Best for UPSC, SSC, NDA preparation." />
+  <meta property="og:url" content="https://mapcrown.online/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://mapcrown.online/preview.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MapCrown - World Map Explorer" />
+  <meta name="twitter:description" content="Explore geography with interactive maps and quiz." />
+  <meta name="twitter:image" content="https://mapcrown.online/preview.png" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "MapCrown",
+    "url": "https://mapcrown.online/",
+    "description": "Interactive geography learning platform with maps, quizzes, and facts for UPSC, SSC, NDA, CDS preparation.",
+    "author": { "@type": "Person", "name": "Himanshu Kumar" }
+  }
+  </script>
+  <!-- ===== SEO END ===== -->
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 
   <!-- Leaflet -->
@@ -49,15 +80,15 @@
         <option value="mountains">Mountains</option>
       </select>
 
-      <button id="btnFacts" disabled>✨ Facts</button>
-      <button id="btnDaily">Daily</button>
-      <button id="btnQuiz">Quiz</button>
-      <button id="btnExplore" class="active">Explore</button>
+      <button id="btnFacts" disabled type="button">✨ Facts</button>
+      <button id="btnDaily" type="button">Daily</button>
+      <button id="btnQuiz" type="button">Quiz</button>
+      <button id="btnExplore" class="active" type="button">Explore</button>
 
       <!-- Mobile dropdown menu -->
-      <div class="mobileMenuWrap">
-        <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu">☰</button>
-        <div id="mMenu" class="mobileMenu hidden">
+      <div class="mobileMenuWrap" id="mobileMenuWrap">
+        <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+        <div id="mMenu" class="mobileMenu hidden" aria-hidden="true">
           <button class="mItem" data-nav="home" type="button">🏠 Home</button>
           <button class="mItem" data-nav="contact" type="button">✉️ Contact Us</button>
           <button class="mItem" data-nav="about" type="button">👤 About Founder</button>
@@ -120,10 +151,10 @@
           <p id="qText" class="qText">—</p>
 
           <div class="mcq">
-            <button class="mcqBtn" data-i="0"></button>
-            <button class="mcqBtn" data-i="1"></button>
-            <button class="mcqBtn" data-i="2"></button>
-            <button class="mcqBtn" data-i="3"></button>
+            <button class="mcqBtn" data-i="0" type="button"></button>
+            <button class="mcqBtn" data-i="1" type="button"></button>
+            <button class="mcqBtn" data-i="2" type="button"></button>
+            <button class="mcqBtn" data-i="3" type="button"></button>
           </div>
 
           <p id="qMsg" class="qMsg"></p>
@@ -142,6 +173,15 @@
       </div>
     </aside>
   </main>
+
+  <!-- SEO Text (Google needs text) -->
+  <section class="seoText">
+    <h1>MapCrown: World Map Explorer & Geography Quiz</h1>
+    <p>
+      MapCrown is a fast interactive geography learning website for <b>UPSC, NDA, CDS, SSC</b>.
+      Explore <b>countries, states, cities, rivers, mountains</b> and practice with <b>MCQ</b> and <b>amazing facts</b>.
+    </p>
+  </section>
 
   <footer class="footer">
     <div class="footerLeft">
