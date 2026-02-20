@@ -2,27 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>MapCrown - World Map Explorer, Quiz & Geography Learning</title>
-
-  <meta name="description" content="MapCrown is an interactive geography learning platform for UPSC, NDA, CDS, SSC. Explore countries, states, rivers, mountains with quiz and amazing facts." />
-  <meta name="keywords" content="world map, geography learning, map quiz, upsc geography, nda geography, cds geography, ssc geography, countries map, rivers map, mountains map, india map quiz, geography facts" />
-  <meta name="author" content="Himanshu Kumar" />
-  <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://mapcrown.online/" />
-
-  <!-- Social preview -->
-  <meta property="og:title" content="MapCrown - Explore World Map & Quiz" />
-  <meta property="og:description" content="Learn Geography with Maps, Quiz & Facts. Best for UPSC, SSC, NDA preparation." />
-  <meta property="og:url" content="https://mapcrown.online/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://mapcrown.online/preview.png" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MapCrown - World Map Explorer" />
-  <meta name="twitter:description" content="Explore geography with interactive maps and quiz." />
-  <meta name="twitter:image" content="https://mapcrown.online/preview.png" />
-
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MapCrown • Geo Explorer</title>
 
   <link rel="stylesheet" href="style.css" />
 
@@ -35,16 +16,18 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">👑 MapCrown</div>
+    <div class="left">
+      <div class="brand">👑 MapCrown</div>
+    </div>
 
-    <!-- ✅ PC MENU ONLY -->
-    <nav class="topNav" aria-label="Primary desktop navigation">
+    <!-- Desktop nav -->
+    <nav class="topNav">
       <button class="navLink" data-nav="home" type="button">Home</button>
       <button class="navLink" data-nav="contact" type="button">Contact Us</button>
       <button class="navLink" data-nav="about" type="button">About Founder</button>
     </nav>
 
-    <div class="controlsRow">
+    <div class="topControls">
       <select id="examMode" title="Exam Mode">
         <option value="general">General</option>
         <option value="upsc">UPSC</option>
@@ -53,9 +36,9 @@
         <option value="ssc">SSC</option>
       </select>
 
-      <label class="toggle" title="India Focus">
+      <label class="toggle">
         <input id="indiaFocus" type="checkbox" />
-        <span>India</span>
+        <span>India Focus</span>
       </label>
 
       <select id="category" title="Category">
@@ -67,44 +50,43 @@
       </select>
 
       <button id="btnFacts" disabled>✨ Facts</button>
+      <button id="btnDaily">Daily</button>
       <button id="btnQuiz">Quiz</button>
       <button id="btnExplore" class="active">Explore</button>
 
-      <!-- ✅ MOBILE MENU ONLY -->
-      <div class="mobileMenuWrap" id="mobileMenuWrap">
-        <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
-        <div id="mMenu" class="mobileMenu hidden" role="menu" aria-label="Mobile menu">
-          <button class="mItem" data-nav="home" type="button" role="menuitem">🏠 Home</button>
-          <button class="mItem" data-nav="contact" type="button" role="menuitem">✉️ Contact Us</button>
-          <button class="mItem" data-nav="about" type="button" role="menuitem">👤 About Founder</button>
+      <!-- Mobile dropdown menu -->
+      <div class="mobileMenuWrap">
+        <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu">☰</button>
+        <div id="mMenu" class="mobileMenu hidden">
+          <button class="mItem" data-nav="home" type="button">🏠 Home</button>
+          <button class="mItem" data-nav="contact" type="button">✉️ Contact Us</button>
+          <button class="mItem" data-nav="about" type="button">👤 About Founder</button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- ✅ FIXED MAP SECTION -->
   <main class="layout" id="home">
     <section class="stage">
-      <div id="map"></div>
+      <div id="map" class="stageItem"></div>
     </section>
 
-    <!-- ✅ DETAILS PANEL -->
     <aside class="panel" id="panel">
       <div class="mobilePanelBar">
         <div class="handle"></div>
         <button id="panelToggle" type="button">Details</button>
       </div>
 
-      <div class="panelInner">
-        <h2 id="title">Ready</h2>
+      <div class="panelInner" id="panelInner">
+        <h2 id="title">Select something</h2>
 
         <div class="card">
           <div class="krow"><span class="k">Name</span><span id="cName" class="v">—</span></div>
           <div class="krow"><span class="k">Type</span><span id="cType" class="v">—</span></div>
-          <div class="krow"><span class="k">Exam</span><span id="modeText" class="v">General</span></div>
+          <div class="krow"><span class="k">Exam Mode</span><span id="modeText" class="v">General</span></div>
         </div>
 
-        <div class="card mt">
+        <div class="card" style="margin-top:12px;">
           <div class="cardHead">
             <h3>📌 Details</h3>
             <img id="flag" class="flag hidden" alt="Flag">
@@ -113,36 +95,63 @@
         </div>
 
         <div id="quizBox" class="quiz hidden">
-          <h3>🧠 Quiz</h3>
+          <div class="quizHead">
+            <h3>🧠 Quiz</h3>
+            <div class="miniText">Mode: <span id="quizModeText">Map Quiz</span></div>
+          </div>
+
+          <div class="quizControls">
+            <select id="quizMode" title="Quiz Mode">
+              <option value="map">Map Quiz</option>
+              <option value="topic">Topic-wise</option>
+              <option value="pyq">PYQ</option>
+              <option value="daily">Daily (10)</option>
+            </select>
+
+            <select id="topicPick" title="Topic" class="hidden">
+              <option value="countries">Countries</option>
+              <option value="states">States</option>
+              <option value="cities">Cities</option>
+              <option value="rivers">Rivers</option>
+              <option value="mountains">Mountains</option>
+            </select>
+          </div>
+
           <p id="qText" class="qText">—</p>
+
           <div class="mcq">
             <button class="mcqBtn" data-i="0"></button>
             <button class="mcqBtn" data-i="1"></button>
             <button class="mcqBtn" data-i="2"></button>
             <button class="mcqBtn" data-i="3"></button>
           </div>
+
           <p id="qMsg" class="qMsg"></p>
-          <div class="scoreRow">Score: <b><span id="score">0</span></b></div>
+
+          <div class="scoreRow">
+            <div>Score: <b><span id="score">0</span></b></div>
+            <div id="dailyProgress" class="miniText hidden">Daily: 0/10</div>
+          </div>
         </div>
 
         <p class="hint">
           ✅ Select something → Details<br>
-          ✅ Click ✨ Facts for real facts
+          ✅ Then click <b>✨ Facts</b> → Close / Next<br>
+          ✅ Mobile: panel slide-up with Details button
         </p>
       </div>
     </aside>
   </main>
 
-  <!-- Footer -->
   <footer class="footer">
-    <div>
+    <div class="footerLeft">
       <div class="footerTitle">MapCrown</div>
       <div class="footerSub">Created by <b>Himanshu Kumar</b></div>
     </div>
   </footer>
 
-  <!-- About/Contact Modal -->
-  <div id="infoModal" class="modal hidden">
+  <!-- Info Modal -->
+  <div id="infoModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modalCard">
       <div class="modalHead">
         <h3 id="infoTitle">—</h3>
@@ -153,7 +162,7 @@
   </div>
 
   <!-- Facts Modal -->
-  <div id="factsModal" class="modal hidden">
+  <div id="factsModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modalCard">
       <div class="modalHead">
         <h3>✨ Amazing Facts</h3>
@@ -170,14 +179,17 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
   <script src="app.js"></script>
 
+  <!-- Mobile details bottom-sheet toggle -->
   <script>
     const panel = document.getElementById("panel");
-    document.getElementById("panelToggle")?.addEventListener("click", () => panel.classList.toggle("open"));
+    const btn = document.getElementById("panelToggle");
+    btn?.addEventListener("click", () => panel.classList.toggle("open"));
   </script>
 </body>
 </html>
