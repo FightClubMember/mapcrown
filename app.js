@@ -1,574 +1,659 @@
-// =========================
-// MapCrown - FULL app.js
-// =========================
+/* ============================================================
+   MapCrown - Professional app.js
+   Author: Himanshu Kumar
+   ============================================================ */
 
-// ---------- DOM ----------
-const elCategory = document.getElementById("category");
-const elExamMode = document.getElementById("examMode");
-const elIndiaFocus = document.getElementById("indiaFocus");
-const elModeText = document.getElementById("modeText");
+/* -----------------------------
+   CONFIG
+------------------------------ */
+const CONFIG = {
+  DEV: false, // set true if you want console logs
 
-const titleEl = document.getElementById("title");
-const cNameEl = document.getElementById("cName");
-const cTypeEl = document.getElementById("cType");
-const detailsEl = document.getElementById("details");
-const flagEl = document.getElementById("flag");
+  DATA_FILES: {
+    countries: "/data/countries.min.json",
+    states: "/data/states_provinces.min.json",
+    cities: "/data/cities_major.min.json",
+    rivers: "/data/rivers.min.json",
+    mountains: "/data/mountains_peaks.min.json",
+  },
 
-const btnFacts = document.getElementById("btnFacts");
-const btnHelp = document.getElementById("btnHelp");
+  MAP: {
+    startView: { lat: 20, lng: 0, zoom: 2 },
+    minZoom: 2,
+    maxZoom: 10,
+    tileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    tileMaxZoom: 19,
+    bounds: { south: -85, west: -180, north: 85, east: 180 },
+  },
 
-const factsModal = document.getElementById("factsModal");
-const factsTitle = document.getElementById("factsTitle");
-const factsMeta = document.getElementById("factsMeta");
-const factsBox = document.getElementById("factsBox");
-const closeFacts = document.getElementById("closeFacts");
-const nextFact = document.getElementById("nextFact");
+  CITIES: {
+    // If dataset is huge and mobile lags, set 2 or 3 (loads every 2nd/3rd point)
+    samplingStep: 1,
+    disableClusteringAtZoom: 8,
+    maxClusterRadius: 50,
+  },
 
-const infoModal = document.getElementById("infoModal");
-const infoTitle = document.getElementById("infoTitle");
-const infoBody = document.getElementById("infoBody");
-const infoClose = document.getElementById("infoClose");
+  ONBOARDING: {
+    storageKey: "mapcrown_tour_done",
+    openDelayMs: 700,
+  },
 
-// Mobile menu fix
-const mMenuBtn = document.getElementById("mMenuBtn");
-const mMenu = document.getElementById("mMenu");
-const mobileMenuWrap = document.getElementById("mobileMenuWrap");
+  FACTS: {
+    cachePrefix: "facts_v1_",
+    maxFacts: 8,
+  },
+};
 
-// ---------- Helpers ----------
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+/* -----------------------------
+   UTILITIES
+------------------------------ */
+const Log = {
+  info: (...a) => CONFIG.DEV && console.log("[MapCrown]", ...a),
+  warn: (...a) => CONFIG.DEV && console.warn("[MapCrown]", ...a),
+  err: (...a) => console.error("[MapCrown]", ...a),
+};
 
-function safeStr(v){
+const $ = (sel) => document.querySelector(sel);
+
+function safeStr(v) {
   if (v === null || v === undefined) return "";
   return String(v).trim();
 }
 
-function pick(obj, keys){
-  for (const k of keys){
-    const v = obj?.[k];
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function fmtNum(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "";
+  return n.toLocaleString("en-IN");
+}
+
+function capitalize(s) {
+  s = safeStr(s);
+  return s ? s[0].toUpperCase() + s.slice(1) : "";
+}
+
+function pick(props, keys) {
+  for (const k of keys) {
+    const v = props?.[k];
     if (v !== null && v !== undefined && String(v).trim() !== "") return v;
   }
   return "";
 }
 
-function fmtNum(v){
-  const n = Number(v);
-  if (!Number.isFinite(n)) return "";
-  return n.toLocaleString();
+function isProbablyIndia(props) {
+  const a = safeStr(pick(props, ["admin", "ADMIN", "adm0name", "ADM0NAME", "country", "COUNTRY"])).toLowerCase();
+  const b = safeStr(pick(props, ["sovereignt", "SOVEREIGNT"])).toLowerCase();
+  const iso = safeStr(pick(props, ["iso_a2", "ISO_A2", "iso_a3", "ISO_A3"])).toLowerCase();
+  return a.includes("india") || b.includes("india") || iso === "in" || iso === "ind";
 }
 
-function isIndiaFeature(props){
-  const name = safeStr(pick(props, ["admin", "name", "name_en", "name_long", "region", "province", "state"])).toLowerCase();
-  const admin0 = safeStr(pick(props, ["adm0name", "country", "sovereignt", "admin0"])).toLowerCase();
-  return name.includes("india") || admin0.includes("india");
-}
+/* Remove useless keys like featurecla/scalerank/min_zoom etc */
+const JUNK_KEYS = new Set([
+  "featurecla","FEATURECLA","scalerank","SCALERANK","min_zoom","MIN_ZOOM",
+  "labelrank","LABELRANK","note","NOTE","name_alt","NAME_ALT","name_en","NAME_EN",
+  "name_long","NAME_LONG","nameascii","NAMEASCII","wikidataid","WIKIDATAID",
+  "ne_id","NE_ID","adm0_a3","ADM0_A3","adm1_a3","ADM1_A3","fclass","FCLASS",
+  "geonunit","GEONUNIT","subunit","SUBUNIT","sov_a3","SOV_A3"
+]);
 
-function capitalize(s){
-  s = safeStr(s);
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-}
+/* -----------------------------
+   DOM REFERENCES
+------------------------------ */
+const UI = {
+  category: $("#category"),
+  examMode: $("#examMode"),
+  indiaFocus: $("#indiaFocus"),
+  indiaToggle: $("#indiaToggle"),
+  modeText: $("#modeText"),
 
-// ---------- Detail mapping (clean UI) ----------
-const FIELD_MAP = {
-  countries: [
-    ["Capital", ["capital", "capital_en", "cap", "capitale"]],
-    ["Continent", ["continent", "region_un", "continent"]],
-    ["Region", ["region", "subregion", "subregion_en"]],
-    ["Population", ["pop_est", "population"]],
-    ["Area (km²)", ["area_km2", "area"]],
-    ["Currency", ["currency", "currency_name"]],
-    ["ISO Code", ["iso_a2", "iso_a3", "iso3"]],
-    ["Timezones", ["timezones", "tz"]]
-  ],
-  states: [
-    ["Country", ["adm0name", "country", "admin"]],
-    ["State/Province", ["name", "name_en", "name_alt"]],
-    ["Type", ["type", "engtype_1", "type_en"]],
-    ["Region", ["region", "region_cod"]],
-    ["Postal/Code", ["postal", "postal_code", "iso_3166_2"]],
-    ["Capital", ["capital", "cap"]]
-  ],
-  cities: [
-    ["Country", ["adm0name", "country", "sov0name"]],
-    ["State/Region", ["adm1name", "admin1", "region"]],
-    ["City Type", ["featurecla", "type", "class"]],
-    ["Population", ["pop_max", "population"]],
-    ["Rank", ["scalerank", "rank"]],
-    ["Coordinates", ["lat", "latitude", "y", "lon", "longitude", "x"]]
-  ],
-  rivers: [
-    ["Country/Region", ["adm0name", "country", "region"]],
-    ["River Name", ["name", "name_en", "name_alt"]],
-    ["Length (km)", ["length_km", "length"]],
-    ["Basin", ["basin", "drainage"]],
-    ["Mouth", ["mouth", "mouth_name"]],
-    ["Source", ["source", "source_name"]]
-  ],
-  mountains: [
-    ["Country/Region", ["adm0name", "country", "region"]],
-    ["Peak Name", ["name", "name_en", "name_alt"]],
-    ["Elevation (m)", ["elevation", "elev_m", "elev"]],
-    ["Range", ["range", "mountain_range"]],
-    ["Type", ["type", "featurecla"]],
-    ["Coordinates", ["lat", "latitude", "y", "lon", "longitude", "x"]]
-  ]
+  title: $("#title"),
+  cName: $("#cName"),
+  cType: $("#cType"),
+  details: $("#details"),
+  flag: $("#flag"),
+
+  btnFacts: $("#btnFacts"),
+  btnHelp: $("#btnHelp"),
+
+  // Modals
+  infoModal: $("#infoModal"),
+  infoTitle: $("#infoTitle"),
+  infoBody: $("#infoBody"),
+  infoClose: $("#infoClose"),
+
+  factsModal: $("#factsModal"),
+  factsTitle: $("#factsTitle"),
+  factsMeta: $("#factsMeta"),
+  factsBox: $("#factsBox"),
+  closeFacts: $("#closeFacts"),
+  nextFact: $("#nextFact"),
+
+  // Menu
+  mMenuBtn: $("#mMenuBtn"),
+  mMenu: $("#mMenu"),
+  mobileMenuWrap: $("#mobileMenuWrap"),
 };
 
-function buildDetailsHTML(category, props){
-  const rows = FIELD_MAP[category] || [];
-  const parts = [];
+/* -----------------------------
+   APP STATE
+------------------------------ */
+const State = {
+  activeCategory: "countries",
+  indiaOnly: false,
 
-  // Special formatting for coordinates if available
-  let lat = pick(props, ["lat", "latitude", "y"]);
-  let lon = pick(props, ["lon", "longitude", "x"]);
+  selected: {
+    category: null,
+    name: "",
+    props: null,
+    latlng: null,
+  },
 
-  parts.push(`<ul>`);
-  for (const [label, keys] of rows){
-    let val = pick(props, keys);
+  // caches
+  geoCache: new Map(), // category -> GeoJSON
+  layers: {
+    countries: null,
+    states: null,
+    rivers: null,
+    mountains: null,
+    cities: null,
+  },
+  activeLayer: null,
 
-    if (label.includes("Population")) val = fmtNum(val);
-    if (label.includes("Area")) val = fmtNum(val);
+  facts: {
+    list: [],
+    idx: 0,
+    key: "",
+  },
+};
 
-    if (label === "Coordinates"){
-      // try both in one line
-      if (lat && lon) val = `${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
-      else val = "";
+/* -----------------------------
+   MAP SERVICE
+------------------------------ */
+const MapService = {
+  map: null,
+  cityCluster: null,
+
+  init() {
+    const m = L.map("map", {
+      zoomControl: true,
+      preferCanvas: true,
+      minZoom: CONFIG.MAP.minZoom,
+      maxZoom: CONFIG.MAP.maxZoom,
+      worldCopyJump: true,
+    }).setView([CONFIG.MAP.startView.lat, CONFIG.MAP.startView.lng], CONFIG.MAP.startView.zoom);
+
+    // bounds lock
+    const b = CONFIG.MAP.bounds;
+    const worldBounds = L.latLngBounds(L.latLng(b.south, b.west), L.latLng(b.north, b.east));
+    m.setMaxBounds(worldBounds);
+    m.on("drag", () => m.panInsideBounds(worldBounds, { animate: false }));
+
+    L.tileLayer(CONFIG.MAP.tileUrl, {
+      maxZoom: CONFIG.MAP.tileMaxZoom,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(m);
+
+    // clusters
+    this.cityCluster = L.markerClusterGroup({
+      chunkedLoading: true,
+      showCoverageOnHover: false,
+      disableClusteringAtZoom: CONFIG.CITIES.disableClusteringAtZoom,
+      maxClusterRadius: CONFIG.CITIES.maxClusterRadius,
+    });
+
+    this.map = m;
+    return m;
+  },
+
+  clearActiveLayer() {
+    if (State.activeLayer) {
+      this.map.removeLayer(State.activeLayer);
+      State.activeLayer = null;
+    }
+    if (this.map.hasLayer(this.cityCluster)) this.map.removeLayer(this.cityCluster);
+  },
+
+  fitLayer(layer) {
+    try {
+      const bounds = layer.getBounds?.();
+      if (bounds && bounds.isValid()) this.map.fitBounds(bounds, { padding: [20, 20] });
+    } catch {}
+  },
+
+  zoomTo(latlng, zoom = 6) {
+    try {
+      this.map.setView(latlng, Math.max(this.map.getZoom(), zoom), { animate: true });
+    } catch {}
+  }
+};
+
+/* -----------------------------
+   DATA SERVICE
+------------------------------ */
+const DataService = {
+  async loadCategory(category) {
+    if (State.geoCache.has(category)) return State.geoCache.get(category);
+
+    const url = CONFIG.DATA_FILES[category];
+    if (!url) throw new Error(`No data file configured for category: ${category}`);
+
+    const res = await fetch(url, { cache: "force-cache" });
+    if (!res.ok) throw new Error(`Failed to load GeoJSON: ${url}`);
+
+    const geo = await res.json();
+    if (!geo || !Array.isArray(geo.features)) throw new Error(`Invalid GeoJSON: ${url}`);
+
+    State.geoCache.set(category, geo);
+    return geo;
+  }
+};
+
+/* -----------------------------
+   DETAILS (Professional)
+------------------------------ */
+const DetailRenderer = {
+  FIELD_MAP: {
+    countries: [
+      ["Capital", ["capital", "CAPITAL"]],
+      ["Continent", ["continent", "CONTINENT"]],
+      ["Region", ["region_un", "REGION_UN", "region", "REGION"]],
+      ["Subregion", ["subregion", "SUBREGION"]],
+      ["Population", ["pop_est", "POP_EST", "population", "POPULATION"]],
+      ["Area (km²)", ["area_km2", "AREA_KM2", "area", "AREA"]],
+      ["ISO Code", ["iso_a2", "ISO_A2", "iso_a3", "ISO_A3"]],
+      ["Currency", ["currency", "CURRENCY"]],
+      ["Timezones", ["timezones", "TIMEZONES"]],
+    ],
+    states: [
+      ["State / Province", ["name", "NAME", "name_en", "NAME_EN"]],
+      ["Country", ["adm0name", "ADM0NAME", "admin", "ADMIN", "country", "COUNTRY"]],
+      ["Type", ["type", "TYPE", "engtype_1", "ENGTYPE_1"]],
+      ["ISO-3166-2", ["iso_3166_2", "ISO_3166_2"]],
+      ["Region", ["region", "REGION"]],
+    ],
+    cities: [
+      ["City", ["name", "NAME", "name_en", "NAME_EN"]],
+      ["Country", ["adm0name", "ADM0NAME", "country", "COUNTRY", "admin", "ADMIN"]],
+      ["State / Region", ["adm1name", "ADM1NAME", "region", "REGION"]],
+      ["Population", ["pop_max", "POP_MAX", "population", "POPULATION"]],
+    ],
+    rivers: [
+      ["River", ["name", "NAME", "name_en", "NAME_EN"]],
+      ["Country / Region", ["adm0name", "ADM0NAME", "country", "COUNTRY", "region", "REGION"]],
+      ["Length (km)", ["length_km", "LENGTH_KM", "length", "LENGTH"]],
+      ["Source", ["source", "SOURCE"]],
+      ["Mouth", ["mouth", "MOUTH"]],
+      ["Basin", ["basin", "BASIN"]],
+    ],
+    mountains: [
+      ["Peak", ["name", "NAME", "name_en", "NAME_EN"]],
+      ["Country / Region", ["adm0name", "ADM0NAME", "country", "COUNTRY", "region", "REGION"]],
+      ["Elevation (m)", ["elevation", "ELEVATION", "elev_m", "ELEV_M", "elev", "ELEV"]],
+      ["Range", ["range", "RANGE", "mountain_range", "MOUNTAIN_RANGE"]],
+    ],
+  },
+
+  getDisplayName(category, props) {
+    // fallback name detection
+    const candidate = pick(props, ["name", "NAME", "name_en", "NAME_EN", "admin", "ADMIN", "name_long", "NAME_LONG"]);
+    return safeStr(candidate) || "Unknown";
+  },
+
+  render(category, props, latlng) {
+    // Build clean list
+    const rows = [];
+    const fieldSpec = this.FIELD_MAP[category] || [];
+
+    for (const [label, keys] of fieldSpec) {
+      let val = pick(props, keys);
+      if (!safeStr(val)) continue;
+
+      if (label.toLowerCase().includes("population")) val = fmtNum(val);
+      if (label.toLowerCase().includes("area")) val = fmtNum(val);
+      if (label.toLowerCase().includes("length")) val = fmtNum(val);
+      if (label.toLowerCase().includes("elevation")) val = fmtNum(val);
+
+      rows.push([label, safeStr(val)]);
     }
 
-    if (safeStr(val)) {
-      parts.push(`<li><b>${label}:</b> ${escapeHtml(String(val))}</li>`);
-    }
-  }
-  parts.push(`</ul>`);
-
-  // If nothing found, show minimal safe
-  if (parts.length <= 2){
-    return `<div>No clean details found for this feature.</div>`;
-  }
-  return parts.join("");
-}
-
-function escapeHtml(str){
-  return str
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-// ---------- Map ----------
-const map = L.map("map", {
-  zoomControl: true,
-  preferCanvas: true,
-  minZoom: 2,
-  maxZoom: 10,
-  worldCopyJump: true
-}).setView([20, 0], 2);
-
-// lock bounds (no infinite drag)
-const worldBounds = L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180));
-map.setMaxBounds(worldBounds);
-map.on("drag", () => map.panInsideBounds(worldBounds, { animate:false }));
-
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: "&copy; OpenStreetMap contributors"
-}).addTo(map);
-
-// layers
-let activeLayer = null;
-let activeCategory = "countries";
-
-const layers = {
-  countries: null,
-  states: null,
-  rivers: null,
-  mountains: null,
-  cities: null
-};
-
-const cityCluster = L.markerClusterGroup({
-  chunkedLoading: true,
-  showCoverageOnHover: false,
-  disableClusteringAtZoom: 8,
-  maxClusterRadius: 50
-});
-
-let selected = {
-  category: null,
-  name: "",
-  props: null,
-  latlng: null
-};
-
-// ---------- Data load ----------
-const DATA_FILES = {
-  countries: "/data/countries.min.json",
-  states: "/data/states_provinces.min.json",
-  cities: "/data/cities_major.min.json",
-  rivers: "/data/rivers.min.json",
-  mountains: "/data/mountains_peaks.min.json"
-};
-
-async function loadGeoJSON(url){
-  const res = await fetch(url, { cache: "force-cache" });
-  if (!res.ok) throw new Error(`Failed to load: ${url}`);
-  return await res.json();
-}
-
-function baseStyle(category){
-  if (category === "rivers") return { color: "#5aa7ff", weight: 2, fillOpacity: 0.0 };
-  if (category === "mountains") return { color: "#d6b36a", weight: 2, fillOpacity: 0.08 };
-  if (category === "states") return { color: "#7cc4ff", weight: 1.5, fillOpacity: 0.10 };
-  return { color: "#7cc4ff", weight: 1.5, fillOpacity: 0.08 };
-}
-
-function hoverStyle(){
-  return { weight: 3, fillOpacity: 0.18 };
-}
-
-function clickSelect(feature, latlng, category){
-  const props = feature?.properties || {};
-  const name = safeStr(pick(props, ["name", "name_en", "admin", "name_long", "name_alt"])) || "Unknown";
-  selected = { category, name, props, latlng };
-
-  titleEl.textContent = "Selected";
-  cNameEl.textContent = name;
-  cTypeEl.textContent = capitalize(category);
-  elModeText.textContent = capitalize(elExamMode.value);
-
-  // Clean details
-  detailsEl.innerHTML = buildDetailsHTML(category, props);
-
-  // enable facts
-  btnFacts.disabled = false;
-
-  // flag only for countries if you have a flag url (optional)
-  flagEl.classList.add("hidden");
-}
-
-function bindFeatureEvents(layer, feature, category){
-  layer.on("mouseover", () => {
-    if (layer.setStyle) layer.setStyle(hoverStyle());
-  });
-  layer.on("mouseout", () => {
-    if (layer.setStyle) layer.setStyle(baseStyle(category));
-  });
-  layer.on("click", (e) => {
-    clickSelect(feature, e.latlng, category);
-  });
-}
-
-async function ensureLayer(category){
-  if (layers[category]) return;
-
-  const url = DATA_FILES[category];
-  if (!url) throw new Error(`No data file for ${category}`);
-
-  const geo = await loadGeoJSON(url);
-
-  // India focus filter
-  const indiaOn = !!elIndiaFocus?.checked;
-
-  if (category === "cities"){
-    // Points as markers for speed
-    cityCluster.clearLayers();
-
-    const feats = geo.features || [];
-    for (const f of feats){
-      const props = f.properties || {};
-
-      if (indiaOn && !isIndiaFeature(props)) continue;
-
-      // coords can be GeoJSON [lon, lat]
-      const coords = f.geometry?.coordinates;
-      if (!coords || coords.length < 2) continue;
-      const lon = coords[0];
-      const lat = coords[1];
-
-      const name = safeStr(pick(props, ["name", "name_en"])) || "City";
-      const marker = L.marker([lat, lon], { title: name });
-
-      marker.on("click", () => {
-        clickSelect(f, L.latLng(lat, lon), "cities");
-        map.setView([lat, lon], Math.max(map.getZoom(), 6), { animate: true });
-      });
-
-      marker.bindTooltip(name, { direction: "top", opacity: 0.9 });
-      cityCluster.addLayer(marker);
+    // Coordinates always nice (for non-country too)
+    if (latlng) {
+      rows.push(["Coordinates", `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`]);
     }
 
-    layers.cities = cityCluster;
-    return;
+    // Add extra useful props (but filtered)
+    // If dataset has extra good fields, we include them safely.
+    const extra = this.extractExtraProps(props, rows.map(r => r[0]));
+    for (const [k, v] of extra) rows.push([k, v]);
+
+    if (!rows.length) return `<div>No details available for this item.</div>`;
+
+    return `
+      <div class="detailsRows">
+        ${rows.map(([k, v]) => `
+          <div class="detailsRow">
+            <div class="detailsKey">${escapeHtml(k)}</div>
+            <div class="detailsVal">${escapeHtml(v)}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  },
+
+  extractExtraProps(props, alreadyLabels) {
+    const keep = [];
+    const usedLabelsLower = new Set(alreadyLabels.map(x => x.toLowerCase()));
+
+    // pick up to 6 extra properties that look meaningful
+    const entries = Object.entries(props || {});
+    for (const [kRaw, vRaw] of entries) {
+      const k = safeStr(kRaw);
+      if (!k) continue;
+      if (JUNK_KEYS.has(k)) continue;
+
+      const v = safeStr(vRaw);
+      if (!v) continue;
+
+      // ignore too long / noisy
+      if (v.length > 80) continue;
+
+      // ignore numeric IDs
+      if (/^\d+$/.test(v) && v.length > 5) continue;
+
+      const label = this.prettyKey(k);
+      if (usedLabelsLower.has(label.toLowerCase())) continue;
+
+      keep.push([label, v]);
+      if (keep.length >= 6) break;
+    }
+    return keep;
+  },
+
+  prettyKey(k) {
+    // Make "adm1name" -> "Adm1name" etc. (simple)
+    return capitalize(k.replaceAll("_", " "));
   }
+};
 
-  // Polygons/lines
-  const layer = L.geoJSON(geo, {
-    style: () => baseStyle(category),
-    filter: (f) => {
-      if (!indiaOn) return true;
-      return isIndiaFeature(f.properties || {});
-    },
-    onEachFeature: (feature, lyr) => bindFeatureEvents(lyr, feature, category)
-  });
+/* -----------------------------
+   UI RENDER
+------------------------------ */
+const UIRender = {
+  setLoading(text = "Loading…") {
+    UI.title.textContent = text;
+    UI.details.textContent = "Loading data…";
+    UI.btnFacts.disabled = true;
+  },
 
-  layers[category] = layer;
-}
+  setReady() {
+    UI.title.textContent = "Ready";
+    if (!State.selected.name) UI.details.textContent = "Click on the map to see details…";
+  },
 
-function clearActiveLayer(){
-  if (activeLayer){
-    map.removeLayer(activeLayer);
-    activeLayer = null;
+  setSelected(category, name, props, latlng) {
+    UI.title.textContent = "Selected";
+    UI.cName.textContent = name;
+    UI.cType.textContent = capitalize(category);
+    UI.modeText.textContent = capitalize(UI.examMode.value);
+
+    UI.flag.classList.add("hidden");
+    UI.details.innerHTML = DetailRenderer.render(category, props, latlng);
+
+    UI.btnFacts.disabled = false;
+  },
+
+  showError(msg) {
+    UI.title.textContent = "Error";
+    UI.details.innerHTML = `<b>Error:</b> ${escapeHtml(msg)}<br><br><small>Check /data filenames and extensions (.json)</small>`;
+    UI.btnFacts.disabled = true;
   }
-  if (map.hasLayer(cityCluster)) map.removeLayer(cityCluster);
-}
+};
 
-async function switchCategory(category){
-  activeCategory = category;
-  clearActiveLayer();
+/* -----------------------------
+   LAYERS (Professional)
+------------------------------ */
+const LayerManager = {
+  async ensure(category) {
+    if (State.layers[category]) return;
 
-  // show loading
-  titleEl.textContent = "Loading…";
-  detailsEl.textContent = "Loading data…";
-  btnFacts.disabled = true;
-  selected = { category:null, name:"", props:null, latlng:null };
+    const geo = await DataService.loadCategory(category);
+    const indiaOnly = !!State.indiaOnly;
 
-  try{
-    await ensureLayer(category);
+    if (category === "cities") {
+      MapService.cityCluster.clearLayers();
 
-    if (category === "cities"){
-      activeLayer = layers.cities;
-      map.addLayer(activeLayer);
-    } else {
-      activeLayer = layers[category];
-      map.addLayer(activeLayer);
-      // Fit bounds for better view (optional)
-      try{
-        map.fitBounds(activeLayer.getBounds(), { padding:[20,20] });
+      const feats = geo.features || [];
+      const step = Math.max(1, CONFIG.CITIES.samplingStep);
+
+      for (let idx = 0; idx < feats.length; idx += step) {
+        const f = feats[idx];
+        const props = f.properties || {};
+        if (indiaOnly && !isProbablyIndia(props)) continue;
+
+        const coords = f.geometry?.coordinates;
+        if (!coords || coords.length < 2) continue;
+
+        const latlng = L.latLng(coords[1], coords[0]);
+        const name = DetailRenderer.getDisplayName(category, props);
+
+        const marker = L.marker(latlng, { title: name });
+        marker.bindTooltip(name, { direction: "top", opacity: 0.9 });
+
+        marker.on("click", () => {
+          App.selectFeature(category, name, props, latlng);
+          MapService.zoomTo(latlng, 6);
+        });
+
+        MapService.cityCluster.addLayer(marker);
+      }
+
+      State.layers.cities = MapService.cityCluster;
+      return;
+    }
+
+    // Polygons / lines
+    const layer = L.geoJSON(geo, {
+      filter: (f) => !indiaOnly || isProbablyIndia(f.properties || {}),
+      style: () => this.baseStyle(category),
+      onEachFeature: (feature, lyr) => {
+        const props = feature.properties || {};
+        const name = DetailRenderer.getDisplayName(category, props);
+
+        lyr.bindTooltip(name, { sticky: true, opacity: 0.9 });
+
+        lyr.on("mouseover", () => lyr.setStyle?.(this.hoverStyle(category)));
+        lyr.on("mouseout", () => lyr.setStyle?.(this.baseStyle(category)));
+        lyr.on("click", (e) => App.selectFeature(category, name, props, e.latlng));
+      }
+    });
+
+    State.layers[category] = layer;
+  },
+
+  baseStyle(category) {
+    if (category === "rivers") return { color: "#5aa7ff", weight: 2, fillOpacity: 0 };
+    if (category === "mountains") return { color: "#d6b36a", weight: 2, fillOpacity: 0.08 };
+    if (category === "states") return { color: "#7cc4ff", weight: 1.5, fillOpacity: 0.10 };
+    return { color: "#7cc4ff", weight: 1.5, fillOpacity: 0.08 };
+  },
+
+  hoverStyle(category) {
+    const s = this.baseStyle(category);
+    return { ...s, weight: (s.weight || 2) + 1, fillOpacity: Math.min(0.22, (s.fillOpacity || 0.1) + 0.1) };
+  }
+};
+
+/* -----------------------------
+   FACTS (Wikipedia)
+------------------------------ */
+const FactsService = {
+  async fetchSummary(title) {
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!res.ok) throw new Error("Facts not found on Wikipedia.");
+    return await res.json();
+  },
+
+  toSentences(text) {
+    return safeStr(text)
+      .replace(/\s+/g, " ")
+      .split(/(?<=[.!?])\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length >= 35);
+  },
+
+  async buildFacts(category, name) {
+    const key = `${CONFIG.FACTS.cachePrefix}${category}:${name}`;
+    const cached = sessionStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+
+    const titleCandidates = this.titleCandidates(category, name);
+
+    let summary = null;
+    for (const t of titleCandidates) {
+      try {
+        summary = await this.fetchSummary(t);
+        if (summary?.extract) break;
       } catch {}
     }
 
-    titleEl.textContent = "Ready";
-    detailsEl.textContent = "Click on the map to see details…";
-  } catch (err){
-    titleEl.textContent = "Error";
-    detailsEl.innerHTML = `<b>Missing/incorrect GeoJSON files.</b><br>Check your /data filenames.<br><small>${escapeHtml(err.message)}</small>`;
+    if (!summary?.extract) throw new Error("No facts available for this item.");
+
+    const sentences = this.toSentences(summary.extract).slice(0, CONFIG.FACTS.maxFacts);
+    const facts = sentences.map(s => `✨ ${s}`);
+
+    sessionStorage.setItem(key, JSON.stringify(facts));
+    return facts;
+  },
+
+  titleCandidates(category, name) {
+    const list = [name];
+
+    // smarter guesses
+    if (category === "rivers") list.unshift(`${name} River`);
+    if (category === "mountains") list.unshift(`${name} mountain`, `${name} peak`);
+    if (category === "cities") list.unshift(`${name} (city)`);
+    return Array.from(new Set(list));
   }
-}
+};
 
-// ---------- Facts (Real facts via Wikipedia REST Summary) ----------
-let factsList = [];
-let factsIndex = 0;
+/* -----------------------------
+   ONBOARDING (Pro Tour)
+------------------------------ */
+const Onboarding = {
+  overlay: $("#tourOverlay"),
+  spotlight: $("#tourSpotlight"),
+  card: $("#tourCard"),
+  title: $("#tourTitle"),
+  meta: $("#tourMeta"),
+  text: $("#tourText"),
+  dots: $("#tourDots"),
+  btnNext: $("#tourNext"),
+  btnBack: $("#tourBack"),
+  btnSkip: $("#tourSkip"),
 
-async function wikiSummary(title){
-  // Wikipedia REST API supports CORS
-  const url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("No Wikipedia page found.");
-  return await res.json();
-}
+  steps: [
+    { t:"Welcome to MapCrown", d:"Learn maps for UPSC / NDA / CDS / SSC. This tour will show how to use the site.", el:()=>$(".brand") },
+    { t:"Choose Category", d:"Pick Countries, States, Cities, Rivers or Mountains.", el:()=>$("#category") },
+    { t:"India Focus", d:"Enable India Focus for India-only practice.", el:()=>$("#indiaToggle") || $("#indiaFocus") },
+    { t:"Tap on Map", d:"Click/tap a region to open details on the right panel.", el:()=>$("#map") },
+    { t:"Amazing Facts", d:"After selecting, click ✨ Facts for real interesting facts.", el:()=>$("#btnFacts") },
+    { t:"Quiz", d:"Use Quiz for MCQ practice. Daily mode gives 10 questions.", el:()=>$("#btnQuiz") },
+  ],
+  idx: 0,
 
-function extractFacts(text){
-  // split into sentences and pick interesting ones
-  const sentences = safeStr(text)
-    .replace(/\s+/g, " ")
-    .split(/(?<=[.!?])\s+/)
-    .map(s => s.trim())
-    .filter(s => s.length >= 30);
+  init() {
+    if (!this.overlay) return;
 
-  // take up to 8
-  return sentences.slice(0, 8);
-}
-
-async function loadFactsForSelected(){
-  if (!selected?.name) return;
-
-  const key = `facts_${selected.category}_${selected.name}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached){
-    factsList = JSON.parse(cached);
-    factsIndex = 0;
-    return;
-  }
-
-  // Build better search titles per category
-  let title = selected.name;
-
-  // Common disambiguation helpers
-  if (selected.category === "rivers") title = `${selected.name} River`;
-  if (selected.category === "mountains") title = `${selected.name} mountain`;
-  if (selected.category === "states") title = `${selected.name}`;
-
-  const sum = await wikiSummary(title);
-
-  const facts = extractFacts(sum.extract || "");
-  if (!facts.length) throw new Error("No facts available.");
-
-  factsList = facts;
-  factsIndex = 0;
-  sessionStorage.setItem(key, JSON.stringify(factsList));
-}
-
-function showFact(){
-  if (!factsList.length){
-    factsBox.textContent = "No facts available.";
-    return;
-  }
-  factsBox.textContent = factsList[factsIndex] || factsList[0];
-  factsMeta.textContent = `${factsIndex + 1}/${factsList.length} • Source: Wikipedia`;
-}
-
-btnFacts?.addEventListener("click", async () => {
-  if (!selected?.name) return;
-
-  factsTitle.textContent = selected.name;
-  factsMeta.textContent = "Loading facts…";
-  factsBox.textContent = "Loading…";
-  factsModal.classList.remove("hidden");
-  factsModal.setAttribute("aria-hidden", "false");
-
-  try{
-    await loadFactsForSelected();
-    showFact();
-  } catch (e){
-    factsMeta.textContent = "Facts not found";
-    factsBox.textContent = "Try selecting a bigger/known place. (Wikipedia facts unavailable for this item.)";
-  }
-});
-
-closeFacts?.addEventListener("click", () => {
-  factsModal.classList.add("hidden");
-  factsModal.setAttribute("aria-hidden", "true");
-});
-
-nextFact?.addEventListener("click", () => {
-  if (!factsList.length) return;
-  factsIndex = (factsIndex + 1) % factsList.length;
-  showFact();
-});
-
-// ---------- Contact / About ----------
-function openInfo(title, html){
-  infoTitle.textContent = title;
-  infoBody.innerHTML = html;
-  infoModal.classList.remove("hidden");
-  infoModal.setAttribute("aria-hidden", "false");
-}
-infoClose?.addEventListener("click", () => {
-  infoModal.classList.add("hidden");
-  infoModal.setAttribute("aria-hidden", "true");
-});
-
-function handleNav(action){
-  if (action === "home"){
-    window.scrollTo({ top:0, behavior:"smooth" });
-    return;
-  }
-  if (action === "contact"){
-    openInfo("Contact Us", `
-      <p><b>MapCrown Support</b></p>
-      <p>For suggestions, bugs, or collaboration:</p>
-      <ul>
-        <li>Email: <b>your-email-here</b></li>
-        <li>Location: Muzaffarpur</li>
-      </ul>
-    `);
-    return;
-  }
-  if (action === "about"){
-    openInfo("About Founder", `
-      <p><b>Himanshu Kumar</b> is building MapCrown as a geography learning platform for competitive exam preparation.</p>
-      <p><b>Focus:</b> UPSC, NDA, CDS, SSC and map-based learning.</p>
-      <p><b>Location:</b> Muzaffarpur</p>
-      <p>MapCrown aims to make geography fun, visual and easy to remember with map interaction, quizzes and facts.</p>
-    `);
-  }
-}
-window.handleNav = handleNav;
-
-// Desktop nav clicks
-document.querySelectorAll(".navLink[data-nav]").forEach(btn=>{
-  btn.addEventListener("click", () => handleNav(btn.dataset.nav));
-});
-
-// Mobile menu fix: open above map
-(function mobileMenu(){
-  if (!mMenuBtn || !mMenu || !mobileMenuWrap) return;
-
-  const open = () => { mMenu.classList.remove("hidden"); mMenuBtn.setAttribute("aria-expanded","true"); };
-  const close = () => { mMenu.classList.add("hidden"); mMenuBtn.setAttribute("aria-expanded","false"); };
-  const toggle = () => mMenu.classList.contains("hidden") ? open() : close();
-
-  mMenuBtn.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggle();
-  });
-  mMenu.addEventListener("pointerdown", (e) => e.stopPropagation());
-
-  mMenu.querySelectorAll("[data-nav]").forEach(item=>{
-    item.addEventListener("click", (e)=>{
-      e.preventDefault();
-      e.stopPropagation();
-      close();
-      handleNav(item.dataset.nav);
+    this.btnNext?.addEventListener("click", () => {
+      if (this.idx >= this.steps.length - 1) return this.close(true);
+      this.idx++;
+      this.show();
     });
-  });
 
-  document.addEventListener("pointerdown", (e)=>{
-    if (!mobileMenuWrap.contains(e.target)) close();
-  });
-})();
+    this.btnBack?.addEventListener("click", () => {
+      if (this.idx <= 0) return;
+      this.idx--;
+      this.show();
+    });
 
-// ---------- Pro Onboarding (Spotlight Tour) ----------
-(function proTour(){
-  const overlay = document.getElementById("tourOverlay");
-  const spotlight = document.getElementById("tourSpotlight");
-  const card = document.getElementById("tourCard");
-  const title = document.getElementById("tourTitle");
-  const meta = document.getElementById("tourMeta");
-  const text = document.getElementById("tourText");
-  const dots = document.getElementById("tourDots");
-  const next = document.getElementById("tourNext");
-  const back = document.getElementById("tourBack");
-  const skip = document.getElementById("tourSkip");
+    this.btnSkip?.addEventListener("click", () => this.close(true));
 
-  if (!overlay || !spotlight || !card) return;
+    window.addEventListener("resize", () => {
+      if (!this.overlay.classList.contains("hidden")) this.show();
+    });
 
-  const steps = [
-    { t:"Welcome to MapCrown", d:"This is a map learning tool for UPSC, NDA, CDS, SSC. Let’s learn in 30 seconds.", el:()=>document.querySelector(".brand") },
-    { t:"Choose Category", d:"Select what you want to study: Countries, States, Cities, Rivers, Mountains.", el:()=>document.getElementById("category") },
-    { t:"India Focus", d:"Turn on India Focus for India-only practice (very useful for exams).", el:()=>document.getElementById("indiaToggle") },
-    { t:"Click on the map", d:"Tap/click any place. Details will appear on the right panel.", el:()=>document.getElementById("map") },
-    { t:"Amazing Facts", d:"After selecting something, click ✨ Facts to see real facts from Wikipedia.", el:()=>document.getElementById("btnFacts") },
-    { t:"Quiz", d:"Go to Quiz to test yourself with MCQ. Daily mode gives 10 questions.", el:()=>document.getElementById("btnQuiz") }
-  ];
+    UI.btnHelp?.addEventListener("click", () => this.open(true));
 
-  let i = 0;
+    window.addEventListener("load", () => {
+      setTimeout(() => this.open(false), CONFIG.ONBOARDING.openDelayMs);
+    });
+  },
 
-  function setDots(){
-    dots.innerHTML = "";
-    steps.forEach((_, idx)=>{
+  open(force) {
+    if (!force && localStorage.getItem(CONFIG.ONBOARDING.storageKey)) return;
+    this.overlay.classList.remove("hidden");
+    this.overlay.setAttribute("aria-hidden", "false");
+    this.idx = 0;
+    this.show();
+  },
+
+  close(save) {
+    this.overlay.classList.add("hidden");
+    this.overlay.setAttribute("aria-hidden", "true");
+    if (save) localStorage.setItem(CONFIG.ONBOARDING.storageKey, "1");
+  },
+
+  show() {
+    const step = this.steps[this.idx];
+    const target = step.el?.();
+    if (!target) return;
+
+    this.title.textContent = step.t;
+    this.text.textContent = step.d;
+    this.meta.textContent = `Step ${this.idx + 1}/${this.steps.length}`;
+
+    this.btnBack.disabled = (this.idx === 0);
+    this.btnNext.textContent = (this.idx === this.steps.length - 1) ? "Finish" : "Next";
+
+    this.renderDots();
+    target.scrollIntoView?.({ block: "center", behavior: "smooth" });
+
+    setTimeout(() => this.position(target), 160);
+  },
+
+  renderDots() {
+    this.dots.innerHTML = "";
+    for (let i = 0; i < this.steps.length; i++) {
       const d = document.createElement("div");
-      d.className = "tourDot" + (idx===i ? " active" : "");
-      dots.appendChild(d);
-    });
-  }
+      d.className = "tourDot" + (i === this.idx ? " active" : "");
+      this.dots.appendChild(d);
+    }
+  },
 
-  function place(target){
+  position(target) {
     const r = target.getBoundingClientRect();
     const pad = 10;
+
     const x = Math.max(10, r.left - pad);
     const y = Math.max(10, r.top - pad);
-    const w = Math.min(window.innerWidth - 20, r.width + pad*2);
-    const h = Math.min(window.innerHeight - 20, r.height + pad*2);
+    const w = Math.min(window.innerWidth - 20, r.width + pad * 2);
+    const h = Math.min(window.innerHeight - 20, r.height + pad * 2);
 
-    spotlight.style.left = x + "px";
-    spotlight.style.top = y + "px";
-    spotlight.style.width = w + "px";
-    spotlight.style.height = h + "px";
+    this.spotlight.style.left = `${x}px`;
+    this.spotlight.style.top = `${y}px`;
+    this.spotlight.style.width = `${w}px`;
+    this.spotlight.style.height = `${h}px`;
 
-    const cardW = Math.min(410, window.innerWidth * 0.92);
+    const cardW = Math.min(420, window.innerWidth * 0.92);
     const margin = 10;
 
     let cx = Math.min(window.innerWidth - cardW - margin, x);
@@ -577,69 +662,205 @@ document.querySelectorAll(".navLink[data-nav]").forEach(btn=>{
     const below = y + h + margin;
     const above = y - margin;
 
-    let cy;
-    if (below + 180 < window.innerHeight) cy = below;
-    else cy = Math.max(margin, above - 180);
+    const cy = (below + 190 < window.innerHeight) ? below : Math.max(margin, above - 190);
 
-    card.style.left = cx + "px";
-    card.style.top = cy + "px";
+    this.card.style.left = `${cx}px`;
+    this.card.style.top = `${cy}px`;
   }
+};
 
-  function show(){
-    const s = steps[i];
-    title.textContent = s.t;
-    text.textContent = s.d;
-    meta.textContent = `Step ${i+1}/${steps.length}`;
-    setDots();
+/* -----------------------------
+   MENU (Mobile Fix)
+------------------------------ */
+const Menu = {
+  init() {
+    if (!UI.mMenuBtn || !UI.mMenu || !UI.mobileMenuWrap) return;
 
-    back.disabled = (i === 0);
-    next.textContent = (i === steps.length - 1) ? "Finish" : "Next";
+    const open = () => { UI.mMenu.classList.remove("hidden"); UI.mMenuBtn.setAttribute("aria-expanded", "true"); };
+    const close = () => { UI.mMenu.classList.add("hidden"); UI.mMenuBtn.setAttribute("aria-expanded", "false"); };
+    const toggle = () => UI.mMenu.classList.contains("hidden") ? open() : close();
 
-    const el = s.el();
-    if (!el) return;
+    UI.mMenuBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      toggle();
+    });
 
-    el.scrollIntoView?.({ block:"center", behavior:"smooth" });
-    setTimeout(()=>place(el), 180);
+    UI.mMenu.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+    UI.mMenu.querySelectorAll("[data-nav]").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        close();
+        App.handleNav(item.dataset.nav);
+      });
+    });
+
+    document.addEventListener("pointerdown", (e) => {
+      if (!UI.mobileMenuWrap.contains(e.target)) close();
+    });
   }
+};
 
-  function open(force=false){
-    if (!force && localStorage.getItem("mapcrown_tour_done")) return;
-    overlay.classList.remove("hidden");
-    overlay.setAttribute("aria-hidden","false");
-    i = 0;
-    show();
+/* -----------------------------
+   APP (Main Controller)
+------------------------------ */
+const App = {
+  init() {
+    MapService.init();
+    Menu.init();
+    Onboarding.init();
+
+    // initial UI
+    State.activeCategory = UI.category?.value || "countries";
+    State.indiaOnly = !!UI.indiaFocus?.checked;
+
+    // events
+    UI.category?.addEventListener("change", () => this.switchCategory(UI.category.value));
+    UI.indiaFocus?.addEventListener("change", () => {
+      State.indiaOnly = !!UI.indiaFocus.checked;
+      this.switchCategory(State.activeCategory, { keepSelection: false });
+    });
+
+    UI.examMode?.addEventListener("change", () => {
+      UI.modeText.textContent = capitalize(UI.examMode.value);
+    });
+
+    UI.btnFacts?.addEventListener("click", () => this.openFacts());
+    UI.closeFacts?.addEventListener("click", () => this.closeFacts());
+    UI.nextFact?.addEventListener("click", () => this.nextFact());
+
+    UI.infoClose?.addEventListener("click", () => this.closeInfo());
+
+    document.querySelectorAll(".navLink[data-nav]").forEach(btn => {
+      btn.addEventListener("click", () => this.handleNav(btn.dataset.nav));
+    });
+
+    // start
+    this.switchCategory(State.activeCategory);
+  },
+
+  async switchCategory(category, opts = {}) {
+    State.activeCategory = category;
+    UIRender.setLoading("Loading…");
+
+    MapService.clearActiveLayer();
+
+    // reset selection if needed
+    if (!opts.keepSelection) {
+      State.selected = { category: null, name: "", props: null, latlng: null };
+      UI.cName.textContent = "—";
+      UI.cType.textContent = "—";
+    }
+
+    try {
+      await LayerManager.ensure(category);
+
+      const layer = State.layers[category];
+      State.activeLayer = layer;
+
+      if (category === "cities") {
+        MapService.map.addLayer(layer);
+      } else {
+        MapService.map.addLayer(layer);
+        MapService.fitLayer(layer);
+      }
+
+      UIRender.setReady();
+    } catch (e) {
+      Log.err(e);
+      UIRender.showError(e.message || "Failed to load category.");
+    }
+  },
+
+  selectFeature(category, name, props, latlng) {
+    State.selected = { category, name, props, latlng };
+    UIRender.setSelected(category, name, props, latlng);
+
+    // facts reset
+    State.facts = { list: [], idx: 0, key: "" };
+  },
+
+  // -------- Facts UI --------
+  async openFacts() {
+    if (!State.selected?.name) return;
+
+    UI.factsModal.classList.remove("hidden");
+    UI.factsTitle.textContent = State.selected.name;
+    UI.factsMeta.textContent = "Loading facts…";
+    UI.factsBox.textContent = "Loading…";
+
+    const key = `${State.selected.category}:${State.selected.name}`;
+    if (State.facts.key === key && State.facts.list.length) {
+      this.renderFact();
+      return;
+    }
+
+    try {
+      const list = await FactsService.buildFacts(State.selected.category, State.selected.name);
+      State.facts = { list, idx: 0, key };
+      this.renderFact();
+    } catch (e) {
+      UI.factsMeta.textContent = "Facts not found";
+      UI.factsBox.textContent = "No facts available for this item (Wikipedia not found). Try a bigger/known place.";
+    }
+  },
+
+  closeFacts() {
+    UI.factsModal.classList.add("hidden");
+  },
+
+  nextFact() {
+    if (!State.facts.list.length) return;
+    State.facts.idx = (State.facts.idx + 1) % State.facts.list.length;
+    this.renderFact();
+  },
+
+  renderFact() {
+    const { list, idx } = State.facts;
+    if (!list.length) return;
+    UI.factsBox.textContent = list[idx];
+    UI.factsMeta.textContent = `${idx + 1}/${list.length} • Source: Wikipedia`;
+  },
+
+  // -------- Nav / Modals --------
+  handleNav(action) {
+    if (action === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (action === "contact") {
+      this.openInfo("Contact Us", `
+        <p><b>MapCrown Support</b></p>
+        <p>For feedback, bugs or suggestions:</p>
+        <ul>
+          <li><b>Email:</b> your-email-here</li>
+          <li><b>Location:</b> Muzaffarpur</li>
+        </ul>
+      `);
+      return;
+    }
+    if (action === "about") {
+      this.openInfo("About Founder", `
+        <p><b>Himanshu Kumar</b> is building MapCrown as a geography learning platform for competitive exam preparation.</p>
+        <p><b>Focus:</b> UPSC • NDA • CDS • SSC</p>
+        <p><b>Location:</b> Muzaffarpur</p>
+        <p>Mission: Make map learning visual, easy and exam-ready with details, quizzes and facts.</p>
+      `);
+    }
+  },
+
+  openInfo(title, html) {
+    UI.infoTitle.textContent = title;
+    UI.infoBody.innerHTML = html;
+    UI.infoModal.classList.remove("hidden");
+  },
+
+  closeInfo() {
+    UI.infoModal.classList.add("hidden");
   }
-  function close(save=true){
-    overlay.classList.add("hidden");
-    overlay.setAttribute("aria-hidden","true");
-    if (save) localStorage.setItem("mapcrown_tour_done", "1");
-  }
+};
 
-  next.addEventListener("click", ()=>{
-    if (i >= steps.length - 1) return close(true);
-    i++; show();
-  });
-  back.addEventListener("click", ()=>{
-    if (i <= 0) return;
-    i--; show();
-  });
-  skip.addEventListener("click", ()=>close(true));
-
-  window.addEventListener("resize", ()=>{
-    if (!overlay.classList.contains("hidden")) show();
-  });
-
-  btnHelp?.addEventListener("click", ()=>open(true));
-
-  window.addEventListener("load", ()=>{
-    setTimeout(()=>open(false), 700);
-  });
-})();
-
-// ---------- Events ----------
-elExamMode?.addEventListener("change", ()=> elModeText.textContent = capitalize(elExamMode.value));
-elIndiaFocus?.addEventListener("change", ()=> switchCategory(activeCategory));
-elCategory?.addEventListener("change", ()=> switchCategory(elCategory.value));
-
-// start
-switchCategory(activeCategory);
+/* -----------------------------
+   BOOT
+------------------------------ */
+App.init();
