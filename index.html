@@ -5,22 +5,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MapCrown • Geo Explorer</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet + MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 
   <!-- Brevo form styles -->
   <link rel="stylesheet" href="https://sibforms.com/forms/end-form/build/sib-styles.css">
 
   <style>
     :root{
-      --bg:#061225;
-      --bg2:#071a33;
+      --bg:#061225; --bg2:#071a33;
       --card:rgba(255,255,255,.06);
       --stroke:rgba(255,255,255,.12);
-      --text:#eaf1ff;
-      --muted:rgba(234,241,255,.72);
-      --brand:#2be2ff;
-      --brand2:#7aa7ff;
+      --text:#eaf1ff; --muted:rgba(234,241,255,.72);
+      --brand:#2be2ff; --brand2:#7aa7ff;
       --shadow:0 18px 55px rgba(0,0,0,.35);
       --r:18px;
     }
@@ -37,7 +36,7 @@
       overflow-x:hidden;
     }
 
-    /* ===== Header ===== */
+    /* Header */
     .topbar{
       position:sticky; top:0; z-index:1000;
       background:rgba(6,18,37,.62);
@@ -51,8 +50,9 @@
       gap:12px;
     }
     .brand{
-      display:flex; align-items:center; gap:10px; min-width:max-content;
+      display:flex; align-items:center; gap:10px;
       font-weight:900; letter-spacing:.2px;
+      min-width:max-content;
     }
     .logoDot{
       width:34px;height:34px;border-radius:12px;
@@ -61,13 +61,9 @@
       display:grid; place-items:center;
       box-shadow: 0 10px 30px rgba(43,226,255,.20);
     }
-    .brandText small{
-      display:block; font-size:12px; font-weight:700; color:var(--muted); margin-top:2px;
-    }
+    .brandText small{display:block; font-size:12px; font-weight:700; color:var(--muted); margin-top:2px;}
 
-    .controls{
-      display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;
-    }
+    .controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
     select, .btn{
       border:1px solid rgba(255,255,255,.14);
       background:rgba(255,255,255,.06);
@@ -79,15 +75,8 @@
       cursor:pointer;
     }
     select option{color:#0b1220}
-    .btn{
-      display:inline-flex; align-items:center; gap:8px;
-      user-select:none;
-      transition:transform .15s ease, background .15s ease;
-    }
-    .btn:hover{transform:translateY(-1px); background:rgba(255,255,255,.09)}
-    .btn:active{transform:translateY(0px) scale(.99)}
 
-    /* Desktop nav (NO subscribe here) */
+    /* Desktop nav */
     .navDesktop{display:flex; gap:8px; align-items:center;}
     .navLink{
       border:1px solid rgba(255,255,255,.14);
@@ -99,11 +88,8 @@
       font-weight:900;
     }
 
-    /* Mobile menu button only on mobile */
+    /* Mobile menu (subscribe ONLY here) */
     .menuBtn{display:none;}
-    .menuBtn .bars{font-size:18px}
-
-    /* Mobile menu dropdown */
     .menu{
       position:absolute;
       right:14px;
@@ -130,7 +116,7 @@
     .menuItem:hover{background:rgba(255,255,255,.07)}
     .hidden{display:none !important;}
 
-    /* ===== Main ===== */
+    /* Layout */
     .wrap{
       max-width:1200px;
       margin:14px auto 18px;
@@ -155,10 +141,7 @@
     }
 
     .panel{display:flex; flex-direction:column;}
-    .panelHead{
-      padding:14px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
+    .panelHead{padding:14px; border-bottom:1px solid rgba(255,255,255,.08);}
     .panelHead h2{margin:0 0 6px; font-size:18px}
     .panelHead p{margin:0; color:var(--muted); font-size:13px; line-height:1.45;}
     .panelBody{padding:12px 14px 14px; overflow:auto;}
@@ -169,17 +152,14 @@
       padding:12px;
       margin-bottom:12px;
     }
-    .krow{
-      display:flex; justify-content:space-between; gap:10px;
-      padding:7px 0;
-      border-bottom:1px dashed rgba(255,255,255,.10);
-    }
+    .krow{display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px dashed rgba(255,255,255,.10);}
     .krow:last-child{border-bottom:0}
     .k{color:var(--muted); font-weight:800}
     .v{font-weight:900}
     .details{color:rgba(234,241,255,.92); font-size:14px; line-height:1.55;}
+    .mini{font-size:12px; color:rgba(234,241,255,.60); line-height:1.5;}
 
-    /* ===== Modal ===== */
+    /* Modals */
     .modal{
       position:fixed; inset:0;
       background:rgba(0,0,0,.58);
@@ -189,52 +169,61 @@
       padding:14px;
     }
     .modalCard{
-      width:min(720px, 96vw);
+      width:min(760px, 96vw);
       border-radius:20px;
       border:1px solid rgba(255,255,255,.14);
       background:rgba(7,20,39,.92);
       box-shadow: var(--shadow);
       overflow:hidden;
     }
-    .modalHead{
-      display:flex; justify-content:space-between; align-items:center;
-      padding:14px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
+    .modalHead{display:flex; justify-content:space-between; align-items:center; padding:14px; border-bottom:1px solid rgba(255,255,255,.08);}
     .modalHead h3{margin:0; font-size:17px}
     .modalBody{padding:14px}
+    .btnRow{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    .cta{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:900;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      cursor:pointer;
+      text-decoration:none;
+    }
+    .cta.primary{
+      border-color: rgba(43,226,255,.35);
+      background: linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));
+    }
 
-    /* Brevo theme overrides (premium dark) */
-    .brevoWrap{
+    /* Tutorial overlay */
+    .tourOverlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.62);
+      z-index:11000;
+      display:none;
+    }
+    .tourBox{
+      position:fixed;
+      z-index:11001;
+      width:min(420px, 92vw);
       border-radius:18px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.10);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(7,20,39,.95);
+      box-shadow: var(--shadow);
+      padding:14px;
     }
-    .sib-form{background:transparent !important;}
-    #sib-container{
-      background: transparent !important;
-      border:0 !important;
-      max-width:100% !important;
-    }
-    #sib-container input.input{
-      border-radius:14px !important;
-      border:1px solid rgba(255,255,255,.14) !important;
-      background:rgba(255,255,255,.06) !important;
-      color:var(--text) !important;
-      padding:14px 14px !important;
-      font-weight:900 !important;
-      outline:none !important;
-    }
-    #sib-container input::placeholder{color:rgba(234,241,255,.55) !important;}
-    .sib-form-block__button{
-      border-radius:14px !important;
-      background: linear-gradient(135deg, rgba(43,226,255,.35), rgba(122,167,255,.25)) !important;
-      border:1px solid rgba(43,226,255,.35) !important;
-      color:var(--text) !important;
-      padding:12px 14px !important;
-      font-weight:900 !important;
-      width:100% !important;
+    .tourTitle{font-weight:1000; margin:0 0 6px;}
+    .tourDesc{margin:0; color:rgba(234,241,255,.78); font-size:13px; line-height:1.55;}
+    .tourBtns{display:flex; gap:10px; justify-content:flex-end; margin-top:12px;}
+    .tourBtns button{padding:10px 12px; border-radius:12px; font-weight:900; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer;}
+    .tourBtns button.primary{border-color: rgba(43,226,255,.35); background: linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));}
+    .hl{
+      position:relative;
+      outline: 3px solid rgba(43,226,255,.85);
+      outline-offset: 6px;
+      border-radius: 14px;
+      z-index:11002;
     }
 
     /* Footer */
@@ -244,7 +233,7 @@
       display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
     }
 
-    /* Mobile layout */
+    /* Mobile */
     @media (max-width: 980px){
       .wrap{grid-template-columns:1fr; gap:12px;}
       #map{height: calc(100vh - 210px); min-height:460px;}
@@ -265,15 +254,14 @@
         <div class="logoDot">👑</div>
         <div class="brandText">
           MapCrown
-          <small>Satellite Map • Quiz • Geo Learning</small>
+          <small>Satellite • Quiz • Geo Learning</small>
         </div>
       </div>
 
-      <!-- Desktop nav (NO subscribe button here) -->
       <nav class="navDesktop" aria-label="Primary">
-        <button class="navLink" type="button" data-nav="home">Home</button>
-        <button class="navLink" type="button" data-nav="about">About</button>
-        <button class="navLink" type="button" data-nav="contact">Contact</button>
+        <button class="navLink" type="button" id="btnAbout">About Founder</button>
+        <button class="navLink" type="button" id="btnContact">Contact</button>
+        <button class="navLink" type="button" id="btnHelp">Help</button>
       </nav>
 
       <div class="controls">
@@ -293,24 +281,22 @@
           <option value="ssc">SSC</option>
         </select>
 
-        <!-- Mobile menu button (shows only on mobile) -->
         <button id="menuBtn" class="btn menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="mobileMenu">
-          <span class="bars">☰</span>
-          Menu
+          ☰ Menu
         </button>
       </div>
     </div>
 
-    <!-- Mobile Menu (subscribe ONLY here) -->
+    <!-- Mobile Menu -->
     <div id="mobileMenu" class="menu hidden" role="menu" aria-label="Mobile menu">
-      <button class="menuItem" type="button" data-nav="home">🏠 Home</button>
-      <button class="menuItem" type="button" data-nav="about">👤 About Founder</button>
-      <button class="menuItem" type="button" data-nav="contact">✉️ Contact</button>
-      <button class="menuItem" type="button" id="openSubscribe">📩 Subscribe</button>
+      <button class="menuItem" type="button" id="mAbout">👤 About Founder</button>
+      <button class="menuItem" type="button" id="mContact">✉️ Contact</button>
+      <button class="menuItem" type="button" id="mHelp">❓ Help</button>
+      <button class="menuItem" type="button" id="mSubscribe">📩 Subscribe</button>
     </div>
   </header>
 
-  <main class="wrap" id="home">
+  <main class="wrap">
     <section class="stage">
       <div id="map"></div>
     </section>
@@ -318,7 +304,7 @@
     <aside class="panel">
       <div class="panelHead">
         <h2 id="title">Select something</h2>
-        <p>Choose a category, then click on the map. Details will appear here.</p>
+        <p>Choose category → click on map feature → see details here.</p>
       </div>
       <div class="panelBody">
         <div class="card">
@@ -326,24 +312,19 @@
           <div class="krow"><span class="k">Type</span><span id="cType" class="v">—</span></div>
           <div class="krow"><span class="k">Exam</span><span id="modeText" class="v">GENERAL</span></div>
         </div>
-
         <div class="card">
-          <div class="details" id="details">
-            Tip: Turn on Countries/States and click a region to view details.
-          </div>
+          <div id="details" class="details">Loading data… If you see “Missing file”, fix your /data filenames.</div>
+          <div id="debug" class="mini" style="margin-top:10px;"></div>
         </div>
-
         <div class="card">
-          <div class="details">
-            📩 On mobile, open <b>Menu</b> → <b>Subscribe</b> to get updates.
-          </div>
+          <div class="details"><b>Tip:</b> Cities are shown as clean dots (no messy icons). Click a dot to zoom.</div>
         </div>
       </div>
     </aside>
   </main>
 
   <footer class="footer">
-    <div><b style="color:var(--text)">MapCrown</b> • Satellite map learning for competitive exams</div>
+    <div><b style="color:var(--text)">MapCrown</b> • Geography learning platform</div>
     <div>Created by <b style="color:var(--text)">Himanshu Kumar</b> • © <span id="yr"></span></div>
   </footer>
 
@@ -351,192 +332,489 @@
   <div id="subModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modalCard">
       <div class="modalHead">
-        <h3>📩 Join MapCrown Newsletter</h3>
-        <button id="closeSub" class="btn" type="button">Close</button>
+        <h3>📩 Subscribe to MapCrown</h3>
+        <button class="btn" type="button" id="closeSub">Close</button>
       </div>
       <div class="modalBody">
-        <div class="details" style="margin-bottom:10px;">
-          Get geography practice tips + updates. Please confirm subscription via email (double opt-in).
+        <div class="details">Get updates + learning tips. Confirm subscription via email (double opt-in).</div>
+
+        <div style="height:12px;"></div>
+
+        <!-- Minimal working Brevo form (your action extracted) -->
+        <div style="border:1px solid rgba(255,255,255,.10); border-radius:18px; padding:12px; background:rgba(255,255,255,.03);">
+          <form method="POST"
+            action="https://db151eb5.sibforms.com/serve/MUIFADqAs_XXKqNfYAF7xFrF9YRCZD_vkNiqLSQflLgICazHcrDQsHyRVzLTzcMffVXJ0fBw2lMh7dmIkD5iMUxzMGr_35NLQkWCPyLXaBreyPR2sTS-Xu97alcBDyeOeSBiCI0sUqeNUUtz9OumNhfmYAgzPQPgy9-Q-CsXqN-W9zTKoLP0vt2dCOqiwHAEfKXPK8ySZOjy71grgw=="
+            data-type="subscription">
+
+            <label style="display:block; font-weight:900; margin:6px 0 8px;">Email address</label>
+            <input class="input" type="email" name="EMAIL" autocomplete="email" placeholder="you@example.com" required
+              style="width:100%; padding:14px; border-radius:14px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--text); font-weight:900; outline:none;" />
+
+            <input type="text" name="email_address_check" value="" class="input--hidden" style="display:none;">
+            <input type="hidden" name="locale" value="en">
+
+            <button type="submit"
+              style="margin-top:10px; width:100%; padding:12px 14px; border-radius:14px; cursor:pointer; font-weight:1000;
+                     border:1px solid rgba(43,226,255,.35);
+                     background:linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));
+                     color:var(--text);">
+              Join Now 🚀
+            </button>
+          </form>
         </div>
 
-        <div class="brevoWrap">
-          <!-- Clean minimal form using your Brevo action URL -->
-          <div class="sib-form" style="text-align:center;">
-            <div id="sib-container" class="sib-container--large sib-container--vertical" style="direction:ltr">
-              <form id="sib-form" method="POST"
-                action="https://db151eb5.sibforms.com/serve/MUIFADqAs_XXKqNfYAF7xFrF9YRCZD_vkNiqLSQflLgICazHcrDQsHyRVzLTzcMffVXJ0fBw2lMh7dmIkD5iMUxzMGr_35NLQkWCPyLXaBreyPR2sTS-Xu97alcBDyeOeSBiCI0sUqeNUUtz9OumNhfmYAgzPQPgy9-Q-CsXqN-W9zTKoLP0vt2dCOqiwHAEfKXPK8ySZOjy71grgw=="
-                data-type="subscription">
-
-                <div style="padding: 12px 0 6px;">
-                  <div style="font-size:20px;text-align:left;font-weight:900;color:#eaf1ff;">
-                    Start Your Geography Journey 🌍
-                  </div>
-                </div>
-
-                <div style="padding: 6px 0 12px;">
-                  <div style="text-align:left;color:rgba(234,241,255,.75);font-weight:700;">
-                    UPSC • NDA • CDS • SSC — practice smarter with MapCrown.
-                  </div>
-                </div>
-
-                <div style="padding: 8px 0;">
-                  <div class="sib-input sib-form-block">
-                    <div class="form__entry entry_block">
-                      <div class="form__label-row">
-                        <label class="entry__label" style="font-weight:900;text-align:left;font-size:14px;color:#eaf1ff;" for="EMAIL" data-required="*">
-                          Email address
-                        </label>
-                        <div class="entry__field">
-                          <input class="input" type="email" id="EMAIL" name="EMAIL" autocomplete="email"
-                            placeholder="you@example.com" data-required="true" required />
-                        </div>
-                      </div>
-                      <label class="entry__specification" style="font-size:12px;text-align:left;color:rgba(234,241,255,.55);font-weight:700;">
-                        No spam. Unsubscribe anytime.
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div style="padding: 10px 0 2px;">
-                  <div class="sib-form-block" style="text-align:left">
-                    <button class="sib-form-block__button sib-form-block__button-with-loader" form="sib-form" type="submit">
-                      Join Now 🚀
-                    </button>
-                  </div>
-                </div>
-
-                <input type="text" name="email_address_check" value="" class="input--hidden">
-                <input type="hidden" name="locale" value="en">
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div class="details" style="margin-top:10px;font-size:12px;color:rgba(234,241,255,.55);">
-          If you don’t receive email, check Spam/Promotions and mark “Not spam”.
+        <div class="mini" style="margin-top:10px;">
+          If email doesn’t arrive: check Spam/Promotions and mark “Not spam”.
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Leaflet -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- About Modal -->
+  <div id="aboutModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHead">
+        <h3>👤 About Founder</h3>
+        <button class="btn" type="button" id="closeAbout">Close</button>
+      </div>
+      <div class="modalBody">
+        <div class="details">
+          <b>Himanshu Kumar</b> (Muzaffarpur) built <b>MapCrown</b> to help students prepare geography for
+          <b>UPSC, NDA, CDS, SSC</b> with an interactive map-first learning style.
+          <br><br>
+          The goal is simple: <b>faster revision + better memory</b> using categories like Countries, States, Cities, Rivers and Mountains.
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Brevo script (required for their form system; safe to keep) -->
+  <!-- Contact Modal -->
+  <div id="contactModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHead">
+        <h3>✉️ Contact</h3>
+        <button class="btn" type="button" id="closeContact">Close</button>
+      </div>
+      <div class="modalBody">
+        <div class="details">
+          For support, feedback, or suggestions, email us:
+        </div>
+        <div class="btnRow">
+          <a class="cta primary" href="mailto:support@mapcrown.online?subject=MapCrown%20Support">📧 Email Support</a>
+          <a class="cta" href="mailto:mapcrown.online@zohomail.in?subject=MapCrown%20Feedback">💬 Send Feedback</a>
+        </div>
+        <div class="mini" style="margin-top:10px;">
+          (If your support email is different, change the mailto links in this modal.)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial overlay -->
+  <div id="tourOverlay" class="tourOverlay"></div>
+  <div id="tourBox" class="tourBox hidden">
+    <h4 class="tourTitle" id="tourTitle">Welcome</h4>
+    <p class="tourDesc" id="tourDesc">—</p>
+    <div class="tourBtns">
+      <button id="tourSkip">Skip</button>
+      <button class="primary" id="tourNext">Next</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- Brevo core script -->
   <script defer src="https://sibforms.com/forms/end-form/build/main.js"></script>
 
   <script>
-    // Footer year
-    document.getElementById("yr").textContent = new Date().getFullYear();
+    // ===== Helpers =====
+    const $ = (id) => document.getElementById(id);
+    $("yr").textContent = new Date().getFullYear();
 
-    // ===== Map init (Satellite) =====
-    const map = L.map("map", { zoomControl: true }).setView([20.5937, 78.9629], 4);
+    function setDetails({name="—", type="—", html="—"}){
+      $("title").textContent = name;
+      $("cName").textContent = name;
+      $("cType").textContent = type;
+      $("details").innerHTML = html;
+    }
+    function dbg(msg){ $("debug").textContent = msg || ""; }
 
-    // ESRI Satellite
+    // ===== Map init (Satellite + labels) =====
+    const map = L.map("map", { zoomControl:true }).setView([20.5937, 78.9629], 4);
+
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       { maxZoom: 19, attribution: "Tiles © Esri" }
     ).addTo(map);
 
-    // Labels overlay (makes satellite readable)
+    // label overlay
     L.tileLayer(
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
       { maxZoom: 19 }
     ).addTo(map);
 
-    // ===== UI: exam mode text =====
-    const examMode = document.getElementById("examMode");
-    const modeText = document.getElementById("modeText");
-    examMode.addEventListener("change", () => {
-      modeText.textContent = (examMode.value || "general").toUpperCase();
+    // ===== Exam mode text =====
+    $("examMode").addEventListener("change", () => {
+      $("modeText").textContent = ($("examMode").value || "general").toUpperCase();
     });
 
-    // ===== Professional Mobile Menu (no inline onclick) =====
-    const menuBtn = document.getElementById("menuBtn");
-    const mobileMenu = document.getElementById("mobileMenu");
-
-    function openMenu(){
-      mobileMenu.classList.remove("hidden");
-      menuBtn.setAttribute("aria-expanded", "true");
-    }
-    function closeMenu(){
-      mobileMenu.classList.add("hidden");
-      menuBtn.setAttribute("aria-expanded", "false");
-    }
-    function toggleMenu(){
-      const isHidden = mobileMenu.classList.contains("hidden");
-      isHidden ? openMenu() : closeMenu();
-    }
-
-    menuBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggleMenu();
-    });
-
-    // close on outside click
-    document.addEventListener("click", (e) => {
+    // ===== Mobile menu (professional) =====
+    const menuBtn = $("menuBtn");
+    const mobileMenu = $("mobileMenu");
+    function openMenu(){ mobileMenu.classList.remove("hidden"); menuBtn.setAttribute("aria-expanded","true"); }
+    function closeMenu(){ mobileMenu.classList.add("hidden"); menuBtn.setAttribute("aria-expanded","false"); }
+    function toggleMenu(){ mobileMenu.classList.contains("hidden") ? openMenu() : closeMenu(); }
+    menuBtn.addEventListener("click", (e)=>{ e.stopPropagation(); toggleMenu(); });
+    document.addEventListener("click", (e)=>{
       if (mobileMenu.classList.contains("hidden")) return;
       const inside = mobileMenu.contains(e.target) || menuBtn.contains(e.target);
       if (!inside) closeMenu();
     });
 
-    // close on ESC
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        closeMenu();
-        closeSubscribe();
+    // ===== Modals open/close =====
+    function openModal(el){ el.classList.remove("hidden"); el.setAttribute("aria-hidden","false"); }
+    function closeModal(el){ el.classList.add("hidden"); el.setAttribute("aria-hidden","true"); }
+
+    const subModal = $("subModal");
+    const aboutModal = $("aboutModal");
+    const contactModal = $("contactModal");
+
+    function openSubscribe(){ openModal(subModal); closeMenu(); }
+    function closeSubscribe(){ closeModal(subModal); }
+
+    $("closeSub").addEventListener("click", closeSubscribe);
+    subModal.addEventListener("click", (e)=>{ if(e.target===subModal) closeSubscribe(); });
+
+    function openAbout(){ openModal(aboutModal); closeMenu(); }
+    function closeAbout(){ closeModal(aboutModal); }
+    $("closeAbout").addEventListener("click", closeAbout);
+    aboutModal.addEventListener("click", (e)=>{ if(e.target===aboutModal) closeAbout(); });
+
+    function openContact(){ openModal(contactModal); closeMenu(); }
+    function closeContact(){ closeModal(contactModal); }
+    $("closeContact").addEventListener("click", closeContact);
+    contactModal.addEventListener("click", (e)=>{ if(e.target===contactModal) closeContact(); });
+
+    $("btnAbout").addEventListener("click", openAbout);
+    $("btnContact").addEventListener("click", openContact);
+    $("btnHelp").addEventListener("click", ()=> startTour(true));
+
+    $("mAbout").addEventListener("click", openAbout);
+    $("mContact").addEventListener("click", openContact);
+    $("mHelp").addEventListener("click", ()=> startTour(true));
+    $("mSubscribe").addEventListener("click", openSubscribe);
+
+    document.addEventListener("keydown",(e)=>{
+      if(e.key==="Escape"){ closeMenu(); closeSubscribe(); closeAbout(); closeContact(); stopTour(); }
+    });
+
+    // ===== Auto subscribe popup after 10s (first time only) =====
+    (function autoPopup(){
+      const KEY="mapcrown_sub_popup_seen_v2";
+      if(localStorage.getItem(KEY)==="1") return;
+      setTimeout(()=>{ openSubscribe(); localStorage.setItem(KEY,"1"); }, 10000);
+    })();
+
+    // ===== Data loading + selectable layers =====
+    const DATA = {
+      countries: ["/data/countries.min.json", "/data/countries.min", "/data/countries.json", "/data/countries.geojson"],
+      states:    ["/data/states_provinces.min.json", "/data/states_provinces.min", "/data/states.json", "/data/states.geojson"],
+      cities:    ["/data/cities_major.min.json", "/data/cities_major.min", "/data/cities.json"],
+      rivers:    ["/data/rivers.min.json", "/data/rivers.min", "/data/rivers.json", "/data/rivers.geojson"],
+      mountains: ["/data/mountains_peaks.min.json", "/data/mountains_peaks.min", "/data/mountains.json", "/data/mountains.geojson"]
+    };
+
+    async function fetchFirstOk(urls){
+      for(const u of urls){
+        try{
+          const r = await fetch(u, { cache:"no-store" });
+          if(!r.ok) continue;
+          return { url:u, json: await r.json() };
+        }catch(e){ /* try next */ }
+      }
+      return null;
+    }
+
+    let selectedLayer = null;
+    function resetSelected(){
+      if(!selectedLayer) return;
+      if(selectedLayer.__resetStyle) selectedLayer.__resetStyle();
+      selectedLayer = null;
+    }
+
+    function styleFor(type){
+      if(type==="polygon") return { weight:1, color:"#6aa9ff", fillColor:"#2be2ff", fillOpacity:0.10 };
+      if(type==="line")    return { weight:2, color:"#2be2ff", opacity:0.85 };
+      return {};
+    }
+
+    // Layer holders
+    const layers = {
+      countries: null,
+      states: null,
+      rivers: null,
+      mountains: null,
+      cities: null
+    };
+
+    // Create selectable GeoJSON
+    function makeSelectableGeoJson(geo, kind){
+      const isLine = (kind==="rivers");
+      const layer = L.geoJSON(geo, {
+        style: () => isLine ? styleFor("line") : styleFor("polygon"),
+        onEachFeature: (feature, lyr) => {
+          // store reset style
+          const originalStyle = isLine ? styleFor("line") : styleFor("polygon");
+          lyr.__resetStyle = () => lyr.setStyle(originalStyle);
+
+          lyr.on("click", () => {
+            resetSelected();
+            selectedLayer = lyr;
+
+            // highlight
+            if(isLine){
+              lyr.setStyle({ weight:4, color:"#7aa7ff", opacity:1 });
+            }else{
+              lyr.setStyle({ weight:3, color:"#2be2ff", fillOpacity:0.22 });
+            }
+            if(lyr.bringToFront) lyr.bringToFront();
+
+            const p = feature.properties || {};
+            const name =
+              p.name || p.NAME || p.admin || p.ADMIN || p.Name || p.name_en || p.geonunit || p.sov_a3 || "Unknown";
+
+            // Build a clean property list (avoid repeated junk)
+            const important = [];
+            function add(label, val){
+              if(val===undefined || val===null) return;
+              const s = String(val).trim();
+              if(!s || s==="—" || s==="null" || s==="undefined") return;
+              important.push(`<b>${label}:</b> ${escapeHtml(s)}`);
+            }
+
+            // Try best common fields
+            if(kind==="countries"){
+              add("Capital", p.capital || p.CAPITAL || p.capital_en);
+              add("Region", p.region || p.REGION || p.continent);
+              add("ISO", p.iso_a2 || p.ISO_A2 || p.iso2 || p.ISO2 || p.iso_a3 || p.ISO_A3);
+              add("Population", p.pop_est || p.POP_EST || p.population);
+            }
+            if(kind==="states"){
+              add("State/Province Code", p.iso_3166_2 || p.iso || p.postal);
+              add("Admin", p.admin || p.ADMIN || p.country);
+              add("Type", p.type || p.TYPE);
+            }
+            if(kind==="rivers"){
+              add("River Class", p.featurecla || p.FEATURECLA || p.type);
+              add("Alt name", p.name_alt || p.NAME_ALT);
+              add("Note", p.note || p.NOTE);
+              add("Scale rank", p.scalerank || p.SCALERANK);
+            }
+            if(kind==="mountains"){
+              add("Elevation", p.elevation || p.ELEV || p.elev || p.height);
+              add("Range", p.range || p.RANGE);
+              add("Country", p.country || p.COUNTRY || p.admin || p.ADMIN);
+            }
+
+            setDetails({
+              name,
+              type: kind.slice(0,1).toUpperCase()+kind.slice(1,kind.length-1), // Countries->Countrie (not perfect)
+              html: `
+                <div><b>Name:</b> ${escapeHtml(name)}</div>
+                <div style="margin-top:8px">${important.length ? important.join("<br>") : "<span style='color:rgba(234,241,255,.70)'>No extra details found in this file.</span>"}</div>
+              `
+            });
+          });
+        }
+      });
+      return layer;
+    }
+
+    // Cities layer (points) — clean dots + cluster + zoom on click
+    function makeCitiesLayer(geo){
+      const cluster = L.markerClusterGroup({
+        showCoverageOnHover:false,
+        maxClusterRadius:50
+      });
+
+      const cityLayer = L.geoJSON(geo, {
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius:5,
+            color:"#2be2ff",
+            weight:2,
+            fillColor:"#7aa7ff",
+            fillOpacity:0.35
+          });
+        },
+        onEachFeature: (feature, lyr) => {
+          const p = feature.properties || {};
+          const name = p.name || p.NAME || p.name_en || p.city || "Unknown City";
+          const country = p.country || p.ADMIN || p.admin || p.iso_a2 || p.ISO_A2 || "—";
+          const pop = p.pop_max || p.population || p.POP_MAX || "—";
+
+          lyr.on("click", () => {
+            resetSelected();
+            selectedLayer = lyr;
+            lyr.setStyle({ radius:8, weight:3, fillOpacity:0.55 });
+            map.setView(lyr.getLatLng(), Math.max(map.getZoom(), 7), { animate:true });
+
+            setDetails({
+              name,
+              type: "City",
+              html: `
+                <b>Country:</b> ${escapeHtml(String(country))}<br>
+                <b>Population:</b> ${escapeHtml(String(pop))}<br>
+                <span style="color:rgba(234,241,255,.70)">Tip: zoom in/out for better view.</span>
+              `
+            });
+          });
+        }
+      });
+
+      cluster.addLayer(cityLayer);
+      return cluster;
+    }
+
+    // Switch layers by category
+    let activeKey = "countries";
+    function clearAll(){
+      resetSelected();
+      Object.values(layers).forEach(l => { if(l && map.hasLayer(l)) map.removeLayer(l); });
+    }
+
+    async function ensureLayer(key){
+      if(layers[key]) return true;
+
+      const res = await fetchFirstOk(DATA[key]);
+      if(!res){
+        setDetails({ name:"Missing file", type:"Setup", html:`Could not load <b>${key}</b> dataset. Check /data filenames.`});
+        dbg(`Missing: ${DATA[key].join(" OR ")}`);
+        return false;
+      }
+
+      dbg(`Loaded ${key} from: ${res.url}`);
+
+      const geo = res.json;
+      if(key==="cities"){
+        layers.cities = makeCitiesLayer(geo);
+      }else{
+        layers[key] = makeSelectableGeoJson(geo, key);
+      }
+      return true;
+    }
+
+    async function showCategory(key){
+      activeKey = key;
+      clearAll();
+
+      const ok = await ensureLayer(key);
+      if(!ok) return;
+
+      map.addLayer(layers[key]);
+
+      setDetails({
+        name: key.toUpperCase(),
+        type: "Category",
+        html: `Now click a feature on the map to select.<br><span style="color:rgba(234,241,255,.70)">If you still can’t select, your file may not be valid GeoJSON.</span>`
+      });
+    }
+
+    $("category").addEventListener("change", () => showCategory($("category").value));
+
+    // Start
+    (async function boot(){
+      try{
+        await showCategory("countries");
+      }catch(e){
+        setDetails({ name:"Error", type:"Startup", html:"A script error happened. Check console." });
+        console.error(e);
+      }
+    })();
+
+    // ===== Tutorial (first time) =====
+    const TOUR_KEY = "mapcrown_tour_seen_v1";
+    const tourOverlay = $("tourOverlay");
+    const tourBox = $("tourBox");
+    const tourTitle = $("tourTitle");
+    const tourDesc = $("tourDesc");
+    const tourNext = $("tourNext");
+    const tourSkip = $("tourSkip");
+
+    const steps = [
+      { el: $("category"), title:"Choose a Category", desc:"Select Countries / States / Cities / Rivers / Mountains. The map loads that topic." },
+      { el: $("examMode"), title:"Pick Exam Mode", desc:"Switch focus for UPSC, NDA, CDS, SSC. (You can use it for your quiz logic too.)" },
+      { el: $("map"), title:"Click on the Map", desc:"Tap/click a feature to SELECT it. It will highlight and show details on right." },
+      { el: document.querySelector(".panel"), title:"Read Details", desc:"Details appear here. For cities, map will auto-zoom." },
+      { el: $("menuBtn"), title:"Mobile Menu", desc:"On mobile, open Menu for About / Contact / Help / Subscribe." }
+    ];
+
+    let stepIndex = 0;
+
+    function clearHighlights(){
+      document.querySelectorAll(".hl").forEach(n => n.classList.remove("hl"));
+    }
+
+    function placeTourBoxNear(el){
+      const r = el.getBoundingClientRect();
+      const pad = 14;
+      const top = Math.min(window.innerHeight - 240, Math.max(pad, r.bottom + 12));
+      const left = Math.min(window.innerWidth - 440, Math.max(pad, r.left));
+      tourBox.style.top = top + "px";
+      tourBox.style.left = left + "px";
+    }
+
+    function renderStep(){
+      clearHighlights();
+      const s = steps[stepIndex];
+      if(!s || !s.el) return;
+
+      s.el.classList.add("hl");
+      tourTitle.textContent = s.title;
+      tourDesc.textContent = s.desc;
+      placeTourBoxNear(s.el);
+
+      tourNext.textContent = (stepIndex === steps.length - 1) ? "Finish" : "Next";
+    }
+
+    function startTour(force=false){
+      if(!force && localStorage.getItem(TOUR_KEY)==="1") return;
+      localStorage.setItem(TOUR_KEY, "1");
+      stepIndex = 0;
+      tourOverlay.style.display = "block";
+      tourBox.classList.remove("hidden");
+      renderStep();
+      closeMenu();
+    }
+
+    function stopTour(){
+      tourOverlay.style.display = "none";
+      tourBox.classList.add("hidden");
+      clearHighlights();
+    }
+
+    tourSkip.addEventListener("click", stopTour);
+    tourOverlay.addEventListener("click", stopTour);
+    tourNext.addEventListener("click", ()=>{
+      if(stepIndex < steps.length - 1){
+        stepIndex++;
+        renderStep();
+      }else{
+        stopTour();
       }
     });
 
-    // ===== Subscribe modal =====
-    const subModal = document.getElementById("subModal");
-    const openSubscribeBtn = document.getElementById("openSubscribe");
-    const closeSubBtn = document.getElementById("closeSub");
+    // Auto tutorial on first visit
+    setTimeout(()=> startTour(false), 1200);
 
-    function openSubscribe(){
-      subModal.classList.remove("hidden");
-      subModal.setAttribute("aria-hidden", "false");
-      closeMenu();
+    // ===== Utilities =====
+    function escapeHtml(str){
+      return str.replace(/[&<>"']/g, (m)=>({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
     }
-    function closeSubscribe(){
-      subModal.classList.add("hidden");
-      subModal.setAttribute("aria-hidden", "true");
-    }
-
-    openSubscribeBtn.addEventListener("click", openSubscribe);
-    closeSubBtn.addEventListener("click", closeSubscribe);
-    subModal.addEventListener("click", (e) => {
-      if (e.target === subModal) closeSubscribe();
-    });
-
-    // ===== Auto popup after 10s (first visit only) =====
-    (function autoPopup(){
-      const KEY = "mapcrown_sub_popup_seen_v1";
-      if (localStorage.getItem(KEY) === "1") return;
-      setTimeout(() => {
-        openSubscribe();
-        localStorage.setItem(KEY, "1");
-      }, 10000);
-    })();
-
-    // ===== Nav actions (replace with real pages/modals later) =====
-    document.querySelectorAll("[data-nav]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const nav = btn.getAttribute("data-nav");
-        closeMenu();
-        if (nav === "home") window.scrollTo({ top: 0, behavior: "smooth" });
-        if (nav === "about") document.getElementById("details").innerHTML =
-          "<b>About Founder</b><br>MapCrown is created by <b>Himanshu Kumar</b> (Muzaffarpur) for UPSC/NDA/CDS/SSC learners.";
-        if (nav === "contact") document.getElementById("details").innerHTML =
-          "<b>Contact</b><br>Email: <b>support@mapcrown.online</b><br>We reply as soon as possible.";
-      });
-    });
-
-    // NOTE:
-    // Your “map selecting / details” depends on loading GeoJSON layers.
-    // This file only sets a clean UI + satellite + subscribe.
-    // If you paste your existing GeoJSON selection code here, selection will work again.
   </script>
 </body>
 </html>
