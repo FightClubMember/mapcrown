@@ -665,103 +665,145 @@ UI.indiaFocus.addEventListener("change", ()=> {
 /* ---------- Start ---------- */
 setHeader("", "");
 switchCategory(UI.category.value);
-/* =========================
-   PRO ONBOARDING / TUTORIAL
-   ========================= */
-(function tour(){
-  const TOUR_KEY = "mapcrown_tour_done";
+// =============================
+// HELP + FIRST TIME TUTORIAL (FIXED)
+// =============================
+document.addEventListener("DOMContentLoaded", () => {
+  // Grab elements safely
+  const btnHelp = document.getElementById("btnHelp");
+
+  const overlay = document.getElementById("tourOverlay");
+  const spotlight = document.getElementById("tourSpotlight");
+  const card = document.getElementById("tourCard");
+
+  const tTitle = document.getElementById("tourTitle");
+  const tMeta = document.getElementById("tourMeta");
+  const tText = document.getElementById("tourText");
+  const tDots = document.getElementById("tourDots");
+
+  const bNext = document.getElementById("tourNext");
+  const bBack = document.getElementById("tourBack");
+  const bSkip = document.getElementById("tourSkip");
+
+  // If any tutorial element missing, exit (prevents crash)
+  if (!btnHelp || !overlay || !spotlight || !card || !tTitle || !tMeta || !tText || !tDots || !bNext || !bBack || !bSkip) {
+    console.warn("Tutorial elements missing. Check IDs in index.html");
+    return;
+  }
+
+  const KEY = "mapcrown_seen_tutorial_v1";
 
   const steps = [
-    { t:"Welcome to MapCrown", d:"Learn geography for UPSC/NDA/CDS/SSC using an interactive map.", el:()=>document.querySelector(".brand") },
-    { t:"Pick Category", d:"Choose Countries / States / Cities / Rivers / Mountains.", el:()=>document.getElementById("category") },
-    { t:"India Focus", d:"Turn ON India Focus for India-only practice.", el:()=>document.getElementById("indiaToggle") },
-    { t:"Click on Map", d:"Tap any feature on the map to see clean details in the panel.", el:()=>document.getElementById("map") },
-    { t:"Amazing Facts", d:"After selecting an item, click ✨ Facts for interesting facts.", el:()=>document.getElementById("btnFacts") },
-    { t:"Replay Anytime", d:"Use ❓ Help to replay this tutorial whenever you want.", el:()=>document.getElementById("btnHelp") },
+    { title: "Welcome to MapCrown", text: "Explore geography for UPSC/NDA/CDS/SSC using an interactive map.", el: () => document.querySelector(".brand") },
+    { title: "Pick Category", text: "Select Countries / States / Cities / Rivers / Mountains.", el: () => document.getElementById("category") },
+    { title: "Click the Map", text: "Tap any feature to see details in the panel.", el: () => document.getElementById("map") },
+    { title: "Amazing Facts", text: "After selecting a place, click ✨ Facts for interesting facts.", el: () => document.getElementById("btnFacts") },
+    { title: "Help Anytime", text: "Click ❓ Help to replay this guide anytime.", el: () => document.getElementById("btnHelp") },
   ];
 
-  let i = 0;
+  let idx = 0;
 
-  function setDots(){
-    if (!UI.tourDots) return;
-    UI.tourDots.innerHTML = "";
-    for (let k=0;k<steps.length;k++){
-      const dot = document.createElement("div");
-      dot.className = "tourDot" + (k===i ? " active" : "");
-      UI.tourDots.appendChild(dot);
+  function setDots() {
+    tDots.innerHTML = "";
+    for (let i = 0; i < steps.length; i++) {
+      const d = document.createElement("div");
+      d.className = "tourDot" + (i === idx ? " active" : "");
+      tDots.appendChild(d);
     }
   }
 
-  function place(target){
+  function placeSpotlight(target) {
     const r = target.getBoundingClientRect();
     const pad = 10;
+
     const x = Math.max(10, r.left - pad);
     const y = Math.max(10, r.top - pad);
-    const w = Math.min(window.innerWidth - 20, r.width + pad*2);
-    const h = Math.min(window.innerHeight - 20, r.height + pad*2);
+    const w = Math.min(window.innerWidth - 20, r.width + pad * 2);
+    const h = Math.min(window.innerHeight - 20, r.height + pad * 2);
 
-    UI.tourSpotlight.style.left = x + "px";
-    UI.tourSpotlight.style.top = y + "px";
-    UI.tourSpotlight.style.width = w + "px";
-    UI.tourSpotlight.style.height = h + "px";
+    spotlight.style.left = x + "px";
+    spotlight.style.top = y + "px";
+    spotlight.style.width = w + "px";
+    spotlight.style.height = h + "px";
 
-    const cardW = Math.min(420, window.innerWidth*0.92);
-    const margin = 10;
-    let cx = Math.min(window.innerWidth - cardW - margin, x);
-    cx = Math.max(margin, cx);
+    // Position card near spotlight (below if possible)
+    const cardW = Math.min(420, window.innerWidth * 0.92);
+    const margin = 12;
 
-    const below = y + h + margin;
-    const above = y - margin;
-    const cy = (below + 190 < window.innerHeight) ? below : Math.max(margin, above - 190);
+    let cx = Math.max(margin, Math.min(window.innerWidth - cardW - margin, x));
+    let cy = y + h + margin;
+    if (cy + 220 > window.innerHeight) {
+      cy = Math.max(margin, y - 220 - margin);
+    }
 
-    UI.tourCard.style.left = cx + "px";
-    UI.tourCard.style.top = cy + "px";
+    card.style.left = cx + "px";
+    card.style.top = cy + "px";
   }
 
-  function show(){
-    const s = steps[i];
-    UI.tourTitle.textContent = s.t;
-    UI.tourText.textContent = s.d;
-    UI.tourMeta.textContent = `Step ${i+1}/${steps.length}`;
+  function showStep() {
+    const s = steps[idx];
+    const el = s.el();
+
+    tTitle.textContent = s.title;
+    tText.textContent = s.text;
+    tMeta.textContent = `Step ${idx + 1}/${steps.length}`;
+
+    bBack.disabled = idx === 0;
+    bNext.textContent = idx === steps.length - 1 ? "Finish" : "Next";
     setDots();
 
-    UI.tourBack.disabled = (i===0);
-    UI.tourNext.textContent = (i===steps.length-1) ? "Finish" : "Next";
-
-    const el = s.el();
-    if (!el) return;
-
-    el.scrollIntoView?.({ block:"center", behavior:"smooth" });
-    setTimeout(()=>place(el), 180);
+    if (el) {
+      el.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      setTimeout(() => placeSpotlight(el), 200);
+    } else {
+      // fallback
+      spotlight.style.left = "20px";
+      spotlight.style.top = "80px";
+      spotlight.style.width = "1px";
+      spotlight.style.height = "1px";
+      card.style.left = "12px";
+      card.style.top = "90px";
+    }
   }
 
-  function open(force=false){
-    if (!UI.tourOverlay) return;
-    if (!force && localStorage.getItem(TOUR_KEY)) return;
-
-    UI.tourOverlay.classList.remove("hidden");
-    i = 0;
-    show();
+  function openTour(force = false) {
+    if (!force && localStorage.getItem(KEY) === "1") return;
+    overlay.classList.remove("hidden");
+    overlay.setAttribute("aria-hidden", "false");
+    idx = 0;
+    showStep();
   }
 
-  function close(save=true){
-    if (!UI.tourOverlay) return;
-    UI.tourOverlay.classList.add("hidden");
-    if (save) localStorage.setItem(TOUR_KEY, "1");
+  function closeTour(save = true) {
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+    if (save) localStorage.setItem(KEY, "1");
   }
 
-  UI.tourNext?.addEventListener("click", ()=>{ if (i>=steps.length-1) return close(true); i++; show(); });
-  UI.tourBack?.addEventListener("click", ()=>{ if (i<=0) return; i--; show(); });
-  UI.tourSkip?.addEventListener("click", ()=>close(true));
-
-  // Replay tutorial anytime
-  UI.btnHelp?.addEventListener("click", ()=>open(true));
-
-  window.addEventListener("resize", ()=>{
-    if (UI.tourOverlay && !UI.tourOverlay.classList.contains("hidden")) show();
+  // Buttons
+  btnHelp.addEventListener("click", () => openTour(true));
+  bSkip.addEventListener("click", () => closeTour(true));
+  bNext.addEventListener("click", () => {
+    if (idx >= steps.length - 1) return closeTour(true);
+    idx++;
+    showStep();
+  });
+  bBack.addEventListener("click", () => {
+    if (idx <= 0) return;
+    idx--;
+    showStep();
   });
 
-  // Auto-run only once
-  window.addEventListener("load", ()=> setTimeout(()=>open(false), 700));
-})();
+  // Click outside card closes (optional nice touch)
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeTour(true);
+  });
 
+  // Reposition on resize
+  window.addEventListener("resize", () => {
+    if (!overlay.classList.contains("hidden")) showStep();
+  });
+
+  // ✅ Auto open on first visit
+  setTimeout(() => openTour(false), 800);
+});
