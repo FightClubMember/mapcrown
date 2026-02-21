@@ -4,283 +4,847 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>MapCrown • Geo Explorer</title>
+<meta name="description" content="MapCrown: Explore Countries, States, Cities, Rivers & Mountains. Fast map learning for exams."/>
+<meta name="theme-color" content="#061225"/>
 
+<link rel="preconnect" href="https://unpkg.com">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 
 <style>
   :root{
-    --bg:#071427;
-    --card:#0e1f3d;
-    --stroke:#1e2c44;
-    --text:#ffffff;
+    --bg:#061225; --bg2:#071a33;
+    --text:#eaf1ff; --muted:rgba(234,241,255,.72);
+    --card:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.12);
+    --shadow:0 18px 55px rgba(0,0,0,.35);
+    --r:18px; --c1:#2be2ff; --c2:#7aa7ff;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,Arial;background:var(--bg);color:var(--text);}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background:
+      radial-gradient(1200px 600px at 20% 0%, rgba(43,226,255,.10), transparent 60%),
+      radial-gradient(900px 500px at 80% 10%, rgba(122,167,255,.12), transparent 55%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    color:var(--text);
+    overflow-x:hidden;
+  }
 
-  /* FIXED HEADER (always above everything) */
+  /* HEADER */
   .topbar{
     position:fixed; top:0; left:0; right:0;
-    height:60px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:10px 14px;
-    background:rgba(7,20,39,.95);
-    border-bottom:1px solid var(--stroke);
-    z-index:999999; /* IMPORTANT */
-  }
-  .brand{font-weight:900; letter-spacing:.2px}
-
-  /* Desktop nav (optional) */
-  .topNav{display:flex; gap:10px; align-items:center;}
-  .topNav button{
-    background:var(--card);
-    color:var(--text);
-    border:1px solid rgba(255,255,255,.08);
-    padding:8px 10px;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:800;
-  }
-
-  /* MENU BUTTON (ALWAYS visible) */
-  .menuBtn{
-    width:44px;height:44px;
-    display:grid;place-items:center;
-    font-size:22px;
-    background:var(--card);
-    border:1px solid rgba(255,255,255,.10);
-    color:var(--text);
-    border-radius:12px;
-    cursor:pointer;
     z-index:999999;
+    background:rgba(6,18,37,.68);
+    backdrop-filter: blur(14px);
+    border-bottom:1px solid rgba(255,255,255,.08);
+    padding:12px 14px;
   }
-
-  /* Mobile: hide topNav only (menu stays) */
-  @media(max-width:768px){
-    .topNav{display:none;}
+  .topbarInner{
+    max-width:1200px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
   }
-
-  /* MAP */
-  #map{
-    position:relative;
-    height:calc(100vh - 60px);
-    margin-top:60px;  /* push below header */
-    z-index:1;
+  .brand{display:flex; align-items:center; gap:10px; font-weight:1000}
+  .logoDot{
+    width:34px;height:34px;border-radius:12px;
+    background: linear-gradient(135deg, rgba(122,167,255,.95), rgba(43,226,255,.85));
+    border:1px solid rgba(255,255,255,.16);
+    display:grid; place-items:center;
+    box-shadow: 0 10px 30px rgba(43,226,255,.20);
   }
+  .brandText{line-height:1.05}
+  .brandText small{display:block; font-size:12px; font-weight:800; color:var(--muted); margin-top:4px;}
 
-  /* RIGHT PANEL */
-  .panel{
-    position:fixed;
-    right:10px;
-    top:75px;
-    width:280px;
-    background:rgba(14,31,61,.92);
-    border:1px solid rgba(255,255,255,.10);
-    padding:12px;
-    border-radius:14px;
-    z-index:9999;
-    backdrop-filter: blur(10px);
+  .controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+  select,.btn{
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:999px;
+    outline:none;
+    font-weight:1000;
+    cursor:pointer;
   }
-  .panel h3{margin:0 0 8px}
-  .panel .muted{opacity:.85;font-size:13px;line-height:1.4}
-
-  @media(max-width:768px){
-    .panel{
-      width:calc(100% - 20px);
-      left:10px; right:10px;
-      top:auto;
-      bottom:10px;
-    }
+  select option{color:#0b1220}
+  .btnPrimary{
+    border:1px solid rgba(43,226,255,.35);
+    background:linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));
   }
+  .btn:disabled{opacity:.55; cursor:not-allowed}
 
-  /* MENU DROPDOWN (must be ABOVE map) */
-  .mobileMenu{
+  /* Desktop nav */
+  .deskNav{display:flex; gap:8px; align-items:center;}
+  @media(max-width:860px){ .deskNav{display:none;} }
+
+  /* Mobile menu */
+  .mWrap{position:relative; display:none;}
+  @media(max-width:860px){ .mWrap{display:block;} }
+  .mBtn{
+    width:44px; height:44px; border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+    font-weight:1100;
+    cursor:pointer;
+  }
+  .mMenu{
     position:fixed;
     top:70px;
-    right:10px;
-    width:220px;
-    background:rgba(14,31,61,.97);
-    border:1px solid rgba(255,255,255,.12);
+    right:12px;
+    min-width:210px;
     border-radius:16px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(7,20,39,.96);
+    box-shadow: var(--shadow);
     overflow:hidden;
-    box-shadow:0 16px 50px rgba(0,0,0,.45);
-    z-index:999999; /* IMPORTANT */
+    z-index:999999;
     display:none;
   }
-  .mobileMenu button{
+  .mMenu button{
     width:100%;
     text-align:left;
     padding:12px 12px;
     border:0;
     background:transparent;
     color:var(--text);
-    font-weight:900;
+    font-weight:1000;
     cursor:pointer;
     border-bottom:1px solid rgba(255,255,255,.08);
   }
-  .mobileMenu button:last-child{border-bottom:0}
+  .mMenu button:last-child{border-bottom:0}
 
-  /* MODAL */
+  /* LAYOUT */
+  .wrap{
+    max-width:1200px;
+    margin:86px auto 18px;
+    padding:0 14px;
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:14px;
+    align-items:stretch;
+  }
+  .stage,.panel{
+    border:1px solid rgba(255,255,255,.10);
+    border-radius: var(--r);
+    background: rgba(255,255,255,.05);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  #map{
+    height: calc(100vh - 150px);
+    min-height:520px;
+    width:100%;
+    background:#0b1220;
+  }
+
+  .panel{display:flex; flex-direction:column;}
+  .panelHead{padding:14px; border-bottom:1px solid rgba(255,255,255,.08);}
+  .panelHead h2{margin:0 0 6px; font-size:18px}
+  .panelHead p{margin:0; color:var(--muted); font-size:13px; line-height:1.45;}
+  .panelBody{padding:12px 14px 14px; overflow:auto;}
+  .card{
+    background: rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:16px;
+    padding:12px;
+    margin-bottom:12px;
+  }
+  .krow{display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px dashed rgba(255,255,255,.10);}
+  .krow:last-child{border-bottom:0}
+  .k{color:var(--muted); font-weight:1000}
+  .v{font-weight:1100}
+  .details{color:rgba(234,241,255,.92); font-size:14px; line-height:1.55;}
+  .mini{font-size:12px; color:rgba(234,241,255,.60); line-height:1.5;}
+  .flag{width:64px;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.16);object-fit:cover;box-shadow:0 10px 25px rgba(0,0,0,.25);}
+  .hidden{display:none !important;}
+  a{color:#7aa7ff}
+
+  @media (max-width: 980px){
+    .wrap{grid-template-columns:1fr; gap:12px;}
+    #map{height: calc(100vh - 260px); min-height:460px;}
+  }
+
+  /* MODALS */
   .modal{
     position:fixed; inset:0;
-    background:rgba(0,0,0,.65);
+    background:rgba(0,0,0,.58);
+    backdrop-filter: blur(10px);
     display:none;
-    align-items:center;
-    justify-content:center;
-    padding:14px;
+    place-items:center;
     z-index:999999;
+    padding:14px;
   }
-  .modalBox{
-    width:min(520px, 94vw);
-    background:rgba(14,31,61,.98);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:18px;
-    padding:16px;
-    box-shadow:0 18px 60px rgba(0,0,0,.55);
+  .modalCard{
+    width:min(700px, 96vw);
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(7,20,39,.92);
+    box-shadow: var(--shadow);
+    overflow:hidden;
   }
-  .modalBox h3{margin:0 0 8px}
-  .modalBox p{margin:0 0 10px; opacity:.9; line-height:1.55}
-  .closeBtn{
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,.12);
+  .modalHead{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px; border-bottom:1px solid rgba(255,255,255,.08);
+    gap:10px;
+  }
+  .modalBody{padding:14px}
+  .input{
+    width:100%;
+    padding:14px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
     background:rgba(255,255,255,.06);
-    color:#fff;
-    cursor:pointer;
-    font-weight:900;
+    color:var(--text);
+    font-weight:1100;
+    outline:none;
   }
-  a{color:#7aa7ff}
+  .cta{
+    width:100%;
+    margin-top:10px;
+    padding:12px 14px;
+    border-radius:14px;
+    cursor:pointer;
+    font-weight:1200;
+    border:1px solid rgba(43,226,255,.35);
+    background:linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));
+    color:var(--text);
+  }
+  .footer{
+    max-width:1200px; margin:10px auto 26px; padding:0 14px;
+    color:var(--muted); font-size:13px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  code{background:rgba(255,255,255,.08); padding:2px 6px; border-radius:8px; border:1px solid rgba(255,255,255,.10)}
 </style>
 </head>
 
 <body>
 
 <header class="topbar">
-  <div class="brand">👑 MapCrown</div>
+  <div class="topbarInner">
+    <div class="brand">
+      <div class="logoDot">👑</div>
+      <div class="brandText">
+        MapCrown
+        <small>Geo Explorer • Fast Learning</small>
+      </div>
+    </div>
 
-  <nav class="topNav">
-    <button data-page="home" type="button">Home</button>
-    <button data-page="about" type="button">About</button>
-    <button data-page="contact" type="button">Contact</button>
-  </nav>
+    <div class="controls">
+      <div class="deskNav">
+        <button class="btn" data-nav="home" type="button">Home</button>
+        <button class="btn" data-nav="about" type="button">About</button>
+        <button class="btn" data-nav="contact" type="button">Contact</button>
+      </div>
 
-  <!-- MENU BUTTON ALWAYS VISIBLE -->
-  <button class="menuBtn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+      <select id="category" title="Category">
+        <option value="countries">Countries</option>
+        <option value="states">States</option>
+        <option value="cities">Cities</option>
+        <option value="rivers">Rivers</option>
+        <option value="mountains">Mountains</option>
+      </select>
+
+      <button class="btn" id="btnFacts" disabled type="button">✨ Facts</button>
+      <button class="btn" id="btnHelp" type="button">❓ Help</button>
+      <button class="btn btnPrimary" id="btnSubscribe" type="button">📩 Subscribe</button>
+
+      <div class="mWrap">
+        <button class="mBtn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+      </div>
+    </div>
+  </div>
 </header>
 
-<!-- Dropdown Menu -->
-<div id="menu" class="mobileMenu">
-  <button data-page="home" type="button">🏠 Home</button>
-  <button data-page="about" type="button">👤 About Founder</button>
-  <button data-page="contact" type="button">📧 Contact</button>
+<!-- Mobile menu (only mobile) -->
+<div class="mMenu" id="mMenu">
+  <button data-nav="home" type="button">🏠 Home</button>
+  <button data-nav="about" type="button">👤 About</button>
+  <button data-nav="contact" type="button">📧 Contact</button>
+  <button id="mSub" type="button">📩 Subscribe</button>
 </div>
 
-<div id="map"></div>
+<main class="wrap">
+  <section class="stage"><div id="map"></div></section>
 
-<!-- Details Panel -->
-<div class="panel">
-  <h3 id="title">Ready</h3>
-  <div class="muted"><b>Name:</b> <span id="name">—</span></div>
-  <div class="muted" id="details" style="margin-top:6px;">Tap the map to see lat/long.</div>
+  <aside class="panel">
+    <div class="panelHead">
+      <h2 id="title">Ready</h2>
+      <p id="subtitle">Select category → click on map → details show here.</p>
+    </div>
+    <div class="panelBody">
+      <div class="card">
+        <div class="krow"><span class="k">Name</span><span id="cName" class="v">—</span></div>
+        <div class="krow"><span class="k">Type</span><span id="cType" class="v">—</span></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div class="details" style="font-weight:1200;">Details</div>
+          <img id="flag" class="flag hidden" alt="Flag"/>
+        </div>
+        <div id="details" class="details" style="margin-top:10px;">Click on a feature to see details.</div>
+        <div id="debug" class="mini" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="footer">
+  <div><b style="color:var(--text)">MapCrown</b> • Geography learning</div>
+  <div>Created by <b style="color:var(--text)">Himanshu Kumar</b></div>
+</footer>
+
+<!-- ABOUT / CONTACT modal -->
+<div id="infoModal" class="modal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3 id="infoTitle">—</h3>
+      <button class="btn" id="infoClose" type="button">Close</button>
+    </div>
+    <div class="modalBody" id="infoBody"></div>
+  </div>
 </div>
 
-<!-- Modal -->
-<div id="modal" class="modal" role="dialog" aria-modal="true">
-  <div class="modalBox" id="modalBox"></div>
+<!-- SUBSCRIBE modal -->
+<div id="subModal" class="modal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>📩 Subscribe to MapCrown</h3>
+      <button class="btn" id="subClose" type="button">Close</button>
+    </div>
+    <div class="modalBody">
+      <div class="details">
+        Enter email to join updates.  
+        <div class="mini" style="margin-top:6px;">
+          ✅ To actually store emails, paste your endpoint inside the code (Formspree / Google Script).
+        </div>
+      </div>
+      <input id="subEmail" class="input" type="email" placeholder="you@example.com"/>
+      <button id="subSend" class="cta" type="button">Send / Subscribe</button>
+      <div id="subMsg" class="mini" style="margin-top:10px;"></div>
+      <div class="mini" style="margin-top:10px;">
+        Endpoint setting is inside code: <code>SUBSCRIBE_ENDPOINT</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HELP modal -->
+<div id="helpModal" class="modal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>❓ How to Use</h3>
+      <button class="btn" id="helpClose" type="button">Close</button>
+    </div>
+    <div class="modalBody">
+      <div class="details" style="line-height:1.7;">
+        1) Choose a category from dropdown<br>
+        2) Click a feature on the map to select it<br>
+        3) Details appear on the right panel<br><br>
+        <b>Data Sources:</b><br>
+        • Borders/points/lines = your files in <code>/data/</code><br>
+        • Country details (capital/currency/pop/area/timezones) = RestCountries API (fast)
+        <div class="mini" style="margin-top:10px;">
+          Tip: Cities load only when you zoom in (for speed).
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 <script>
-  // MAP
-  const map = L.map('map').setView([20,78],3);
-  L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { maxZoom: 19 }
-  ).addTo(map);
+(() => {
+  const $ = (id)=>document.getElementById(id);
+  const esc = (s)=>String(s ?? "").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+  const debug = (t)=>$("debug").textContent = t || "";
 
-  map.on("click", (e) => {
-    const lat = e.latlng.lat.toFixed(4);
-    const lng = e.latlng.lng.toFixed(4);
-    document.getElementById("title").textContent = "Selected";
-    document.getElementById("name").textContent = "Location";
-    document.getElementById("details").innerHTML = `Latitude: <b>${lat}</b><br>Longitude: <b>${lng}</b>`;
-  });
+  // =========================
+  // IMPORTANT: SUBSCRIBE ENDPOINT
+  // =========================
+  // To store emails without Brevo:
+  // - Formspree: https://formspree.io/f/xxxxxx
+  // - Google Apps Script WebApp: https://script.google.com/macros/s/xxxx/exec
+  //
+  // Paste it below. If empty, you will only see "Saved (demo)" message.
+  const SUBSCRIBE_ENDPOINT = ""; // <-- PASTE YOUR ENDPOINT HERE
 
-  // MENU LOGIC (NO ONCLICK, PURE JS)
-  const menuBtn = document.getElementById("menuBtn");
-  const menu = document.getElementById("menu");
-
-  function openMenu(){
-    menu.style.display = "block";
+  // =========================
+  // UI helpers
+  // =========================
+  function setFlag(url){
+    const img=$("flag");
+    if(!url){ img.classList.add("hidden"); img.removeAttribute("src"); return; }
+    img.src=url; img.classList.remove("hidden");
   }
-  function closeMenu(){
-    menu.style.display = "none";
-  }
-  function toggleMenu(){
-    if(menu.style.display === "block") closeMenu();
-    else openMenu();
+  function setPanel({title,name,type,html,flagUrl}){
+    $("title").textContent = title ?? "Ready";
+    $("cName").textContent = name ?? "—";
+    $("cType").textContent = type ?? "—";
+    $("details").innerHTML = html ?? "—";
+    setFlag(flagUrl || null);
   }
 
-  menuBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleMenu();
-  });
+  // =========================
+  // Mobile menu (FIXED)
+  // =========================
+  const menuBtn = $("menuBtn");
+  const mMenu = $("mMenu");
 
-  // close menu if clicking outside
-  document.addEventListener("click", (e) => {
-    const inside = menu.contains(e.target) || menuBtn.contains(e.target);
+  function openMenu(){ mMenu.style.display="block"; }
+  function closeMenu(){ mMenu.style.display="none"; }
+  function toggleMenu(){ (mMenu.style.display==="block") ? closeMenu() : openMenu(); }
+
+  menuBtn?.addEventListener("click", (e)=>{ e.stopPropagation(); toggleMenu(); });
+  document.addEventListener("click", (e)=>{
+    if(!mMenu) return;
+    const inside = mMenu.contains(e.target) || menuBtn.contains(e.target);
     if(!inside) closeMenu();
   });
 
-  // MODAL
-  const modal = document.getElementById("modal");
-  const modalBox = document.getElementById("modalBox");
+  // =========================
+  // Modals
+  // =========================
+  function openModal(id){ $(id).style.display="grid"; }
+  function closeModal(id){ $(id).style.display="none"; }
 
-  function openModal(html){
-    modalBox.innerHTML = html;
-    modal.style.display = "flex";
+  $("infoClose").addEventListener("click", ()=>closeModal("infoModal"));
+  $("subClose").addEventListener("click", ()=>closeModal("subModal"));
+  $("helpClose").addEventListener("click", ()=>closeModal("helpModal"));
+
+  $("btnSubscribe").addEventListener("click", ()=>openModal("subModal"));
+  $("mSub").addEventListener("click", ()=>{ closeMenu(); openModal("subModal"); });
+
+  $("btnHelp").addEventListener("click", ()=>openModal("helpModal"));
+
+  // About/Contact
+  function openInfo(title, html){
+    $("infoTitle").textContent = title;
+    $("infoBody").innerHTML = html;
+    openModal("infoModal");
   }
-  function closeModal(){
-    modal.style.display = "none";
-  }
-  modal.addEventListener("click", (e) => {
-    if(e.target === modal) closeModal();
+
+  document.querySelectorAll("[data-nav]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const page = btn.dataset.nav;
+      closeMenu();
+
+      if(page==="home"){
+        closeModal("infoModal");
+        setPanel({
+          title:"Ready",
+          name:"—",
+          type:"—",
+          html:"Select a category → click on map → details show here.",
+          flagUrl:null
+        });
+      }
+      if(page==="about"){
+        openInfo("About Founder", `
+          <div class="details">
+            <b>Himanshu Kumar</b> — Founder of <b>MapCrown</b>.<br><br>
+            Built for smart geography learning and map practice for competitive exams (UPSC, NDA, CDS, SSC).<br><br>
+            <b>From:</b> Muzaffarpur<br>
+            <b>Goal:</b> Make geography simple, visual, and fast.
+          </div>
+        `);
+      }
+      if(page==="contact"){
+        openInfo("Contact", `
+          <div class="details">
+            For support & feedback:<br><br>
+            <a href="mailto:support@mapcrown.online"><b>support@mapcrown.online</b></a><br><br>
+            <button class="btn btnPrimary" type="button" onclick="location.href='mailto:support@mapcrown.online'">Email Now</button>
+          </div>
+        `);
+      }
+    });
   });
 
-  // PAGE HANDLERS
-  function openPage(page){
-    closeMenu();
-    if(page === "home"){
-      closeModal();
+  // =========================
+  // Subscribe send
+  // =========================
+  $("subSend").addEventListener("click", async ()=>{
+    const email = $("subEmail").value.trim();
+    const msg = $("subMsg");
+    if(!email || !email.includes("@")){
+      msg.textContent = "❌ Please enter a valid email.";
       return;
     }
-    if(page === "about"){
-      openModal(`
-        <h3>About Founder</h3>
-        <p><b>Himanshu Kumar</b> — Creator of MapCrown.</p>
-        <p>MapCrown is built for geography learning and exam preparation (UPSC, NDA, CDS, SSC). Clean map exploration + fast revision.</p>
-        <p><b>Location:</b> Muzaffarpur</p>
-        <button class="closeBtn" type="button" onclick="(${closeModal.toString()})()">Close</button>
-      `);
+
+    msg.textContent = "⏳ Sending...";
+    try{
+      if(!SUBSCRIBE_ENDPOINT){
+        // demo success
+        msg.textContent = "✅ Saved (demo). Add SUBSCRIBE_ENDPOINT to store emails.";
+        return;
+      }
+
+      // Standard POST (works for Formspree/Script)
+      const r = await fetch(SUBSCRIBE_ENDPOINT, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ email, source:"mapcrown.online" })
+      });
+
+      if(!r.ok) throw new Error("Request failed");
+      msg.textContent = "✅ Subscribed! Check your email (spam too).";
+    }catch(e){
+      msg.textContent = "⚠️ Could not subscribe. Check endpoint or try later.";
+    }
+  });
+
+  // =========================
+  // Map + Data (Selectable)
+  // =========================
+  const map = L.map("map", { zoomControl:true }).setView([20,78], 3);
+
+  // Satellite (fast)
+  L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 19, attribution: "Tiles © Esri" }
+  ).addTo(map);
+
+  // Performance: cache GeoJSON
+  const DATA = {
+    countries: "/data/countries.min.json",
+    states: "/data/states_provinces.min.json",
+    cities: "/data/cities_major.min.json",
+    rivers: "/data/rivers.min.json",
+    mountains: "/data/mountains_peaks.min.json"
+  };
+  const geoCache = new Map();
+  async function loadGeo(key){
+    if(geoCache.has(key)) return geoCache.get(key);
+    const r = await fetch(DATA[key], { cache:"force-cache" });
+    if(!r.ok) throw new Error("Missing/incorrect GeoJSON: " + DATA[key]);
+    const j = await r.json();
+    geoCache.set(key, j);
+    return j;
+  }
+
+  function polyStyle(){ return { weight:1, color:"#6aa9ff", fillColor:"#2be2ff", fillOpacity:.10 }; }
+  function lineStyle(){ return { weight:2, color:"#2be2ff", opacity:.85 }; }
+
+  function getName(p){
+    return p?.name || p?.NAME || p?.admin || p?.ADMIN || p?.name_en || p?.Name || p?.name_long || "Unknown";
+  }
+
+  function normalizeCountryName(name){
+    const m = {
+      "United States of America":"United States",
+      "Russian Federation":"Russia",
+      "Viet Nam":"Vietnam",
+      "Côte d’Ivoire":"Ivory Coast",
+      "Côte d'Ivoire":"Ivory Coast",
+      "Czechia":"Czech Republic"
+    };
+    return m[name] || name;
+  }
+
+  // Country details (FAST) via RestCountries
+  const countryCache = new Map();
+  async function restCountry(name){
+    const fixed = normalizeCountryName(name);
+    if(countryCache.has(fixed)) return countryCache.get(fixed);
+
+    let r = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(fixed)}?fullText=true`, { cache:"no-store" });
+    if(!r.ok) r = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(fixed)}`, { cache:"no-store" });
+    if(!r.ok) return null;
+
+    const arr = await r.json();
+    const c = arr?.[0];
+    if(!c) return null;
+
+    const capital = c.capital?.[0] || "—";
+    const region = c.region || "—";
+    const subregion = c.subregion || "—";
+    const population = typeof c.population==="number" ? c.population.toLocaleString() : "—";
+    const area = typeof c.area==="number" ? `${c.area.toLocaleString()} km²` : "—";
+    const timezones = Array.isArray(c.timezones) ? c.timezones.join(", ") : "—";
+    const flagUrl = c.flags?.png || c.flags?.svg || null;
+
+    let currency="—";
+    if(c.currencies){
+      const codes = Object.keys(c.currencies);
+      if(codes.length){
+        const code = codes[0];
+        currency = `${c.currencies[code]?.name || code} (${code})`;
+      }
+    }
+
+    const d = { name:fixed, capital, currency, population, area, timezones, region, subregion, flagUrl };
+    countryCache.set(fixed, d);
+    return d;
+  }
+
+  // Layers
+  let currentLayer = null;
+  let selectedLayer = null;
+  let selectedInfo = null; // for Facts
+  function clearLayer(){
+    if(currentLayer && map.hasLayer(currentLayer)) map.removeLayer(currentLayer);
+    currentLayer = null;
+    selectedLayer = null;
+    selectedInfo = null;
+    $("btnFacts").disabled = true;
+  }
+  function resetSelected(){
+    if(selectedLayer && selectedLayer.__resetStyle) selectedLayer.__resetStyle();
+    selectedLayer = null;
+  }
+
+  // Simple facts (no heavy)
+  $("btnFacts").addEventListener("click", ()=>{
+    if(!selectedInfo){
+      setPanel({ title:"Facts", name:"—", type:"—", html:"Select something first.", flagUrl:null });
       return;
     }
-    if(page === "contact"){
-      openModal(`
-        <h3>Contact</h3>
-        <p>For support or feedback, email:</p>
-        <p><a href="mailto:support@mapcrown.online">support@mapcrown.online</a></p>
-        <button class="closeBtn" type="button" onclick="(${closeModal.toString()})()">Close</button>
-      `);
+    if(selectedInfo.kind==="Country" && selectedInfo.data){
+      const d = selectedInfo.data;
+      setPanel({
+        title:"✨ Quick Facts",
+        name:d.name,
+        type:"Country",
+        flagUrl:d.flagUrl,
+        html: `
+          <div><b>Capital:</b> ${esc(d.capital)}</div>
+          <div><b>Population:</b> ${esc(d.population)}</div>
+          <div><b>Area:</b> ${esc(d.area)}</div>
+          <div class="mini" style="margin-top:8px;">Tip: Change category to practice more.</div>
+        `
+      });
       return;
+    }
+    setPanel({
+      title:"✨ Quick Facts",
+      name:selectedInfo.name,
+      type:selectedInfo.kind,
+      flagUrl:null,
+      html:`<div class="details">Practice tip: Click 10 items daily from this category.</div>`
+    });
+  });
+
+  // Build non-country details from properties (clean)
+  function cleanPropsHTML(kind, p){
+    const name = getName(p);
+    if(kind==="State"){
+      const admin = p.admin || p.ADMIN || p.country || p.COUNTRY || "—";
+      const iso = p.iso_3166_2 || p.postal || "—";
+      return `<div><b>State:</b> ${esc(name)}</div>
+              <div><b>Country/Admin:</b> ${esc(admin)}</div>
+              <div><b>Code:</b> ${esc(iso)}</div>`;
+    }
+    if(kind==="City"){
+      const admin = p.admin || p.ADMIN || p.country || "—";
+      const pop = p.pop_max || p.population || p.POP_MAX || "—";
+      return `<div><b>City:</b> ${esc(name)}</div>
+              <div><b>Country/Admin:</b> ${esc(admin)}</div>
+              <div><b>Population:</b> ${esc(pop)}</div>`;
+    }
+    if(kind==="River"){
+      const type = p.featurecla || p.FEATURECLA || "River";
+      const rank = p.scalerank || p.SCALERANK || "—";
+      return `<div><b>River:</b> ${esc(name)}</div>
+              <div><b>Type:</b> ${esc(type)}</div>
+              <div><b>Rank:</b> ${esc(rank)}</div>`;
+    }
+    if(kind==="Mountain"){
+      const elev = p.elevation || p.elev || p.ELEV || p.height || "—";
+      const admin = p.country || p.COUNTRY || p.admin || p.ADMIN || "—";
+      return `<div><b>Mountain:</b> ${esc(name)}</div>
+              <div><b>Elevation:</b> ${esc(elev)}</div>
+              <div><b>Country/Admin:</b> ${esc(admin)}</div>`;
+    }
+    return `<div><b>Name:</b> ${esc(name)}</div>`;
+  }
+
+  // Make selectable geo layer
+  function makeGeoLayer(geo, key){
+    const isLine = key==="rivers";
+    const base = isLine ? lineStyle() : polyStyle();
+
+    return L.geoJSON(geo, {
+      style: ()=>base,
+      onEachFeature: (feature, layer)=>{
+        layer.__resetStyle = ()=>layer.setStyle(base);
+
+        layer.on("click", async ()=>{
+          resetSelected();
+          selectedLayer = layer;
+
+          // highlight
+          if(isLine) layer.setStyle({ weight:4, color:"#7aa7ff", opacity:1 });
+          else layer.setStyle({ weight:3, color:"#2be2ff", fillOpacity:.22 });
+
+          const p = feature.properties || {};
+          const name = getName(p);
+
+          if(key==="countries"){
+            setPanel({ title:"Loading…", name, type:"Country", html:"Loading country details…", flagUrl:null });
+
+            const d = await restCountry(name);
+            if(!d){
+              setPanel({ title:name, name, type:"Country", html:"No country details found for this name.", flagUrl:null });
+              $("btnFacts").disabled=false;
+              selectedInfo = { kind:"Country", name, data:null };
+              return;
+            }
+
+            selectedInfo = { kind:"Country", name:d.name, data:d };
+            $("btnFacts").disabled = false;
+
+            setPanel({
+              title: d.name,
+              name: d.name,
+              type: "Country",
+              flagUrl: d.flagUrl,
+              html: `
+                <div><b>Capital:</b> ${esc(d.capital)}</div>
+                <div><b>Currency:</b> ${esc(d.currency)}</div>
+                <div><b>Population:</b> ${esc(d.population)}</div>
+                <div><b>Area:</b> ${esc(d.area)}</div>
+                <div><b>Time zones:</b> ${esc(d.timezones)}</div>
+                <div><b>Region:</b> ${esc(d.region)}${d.subregion!=="—" ? " • "+esc(d.subregion) : ""}</div>
+              `
+            });
+            return;
+          }
+
+          // other categories
+          const kind =
+            key==="states" ? "State" :
+            key==="cities" ? "City" :
+            key==="rivers" ? "River" :
+            key==="mountains" ? "Mountain" :
+            "Item";
+
+          selectedInfo = { kind, name, data:null };
+          $("btnFacts").disabled = false;
+
+          setPanel({
+            title: name,
+            name,
+            type: kind,
+            flagUrl: null,
+            html: cleanPropsHTML(kind, p)
+          });
+        });
+      }
+    });
+  }
+
+  // Cities: load only when zoom >= 5 (speed)
+  let citiesCluster = null;
+  function buildCities(geo){
+    const cluster = L.markerClusterGroup({
+      showCoverageOnHover:false,
+      maxClusterRadius:50,
+      chunkedLoading:true,
+      chunkInterval:200,
+      chunkDelay:50
+    });
+
+    const layer = L.geoJSON(geo, {
+      pointToLayer: (_, latlng)=>L.circleMarker(latlng, {
+        radius:5, color:"#2be2ff", weight:2, fillColor:"#7aa7ff", fillOpacity:.35
+      }),
+      onEachFeature:(feature, marker)=>{
+        const p = feature.properties || {};
+        const name = getName(p);
+        marker.on("click", ()=>{
+          resetSelected();
+          selectedLayer = marker;
+          marker.setStyle({ radius:8, weight:3, fillOpacity:.55 });
+          map.setView(marker.getLatLng(), Math.max(map.getZoom(), 7), { animate:true });
+
+          selectedInfo = { kind:"City", name, data:null };
+          $("btnFacts").disabled=false;
+
+          setPanel({
+            title:name,
+            name,
+            type:"City",
+            flagUrl:null,
+            html: cleanPropsHTML("City", p)
+          });
+        });
+        marker.__resetStyle = ()=>marker.setStyle({ radius:5, color:"#2be2ff", weight:2, fillColor:"#7aa7ff", fillOpacity:.35 });
+      }
+    });
+
+    cluster.addLayer(layer);
+    return cluster;
+  }
+
+  async function showCategory(key){
+    clearLayer();
+    setPanel({ title:"Loading…", name:"—", type:"—", html:`Loading ${key}…`, flagUrl:null });
+
+    try{
+      const geo = await loadGeo(key);
+      debug("Loaded: " + DATA[key]);
+
+      if(key==="cities"){
+        setPanel({
+          title:"Cities",
+          name:"Zoom in",
+          type:"Cities",
+          html:"For speed, cities load only when zoom level is 5+.",
+          flagUrl:null
+        });
+
+        if(!citiesCluster) citiesCluster = buildCities(geo);
+
+        const addOrRemove = ()=>{
+          if(map.getZoom() >= 5){
+            if(!map.hasLayer(citiesCluster)) map.addLayer(citiesCluster);
+          } else {
+            if(map.hasLayer(citiesCluster)) map.removeLayer(citiesCluster);
+          }
+        };
+        map.off("zoomend", addOrRemove);
+        map.on("zoomend", addOrRemove);
+        addOrRemove();
+        currentLayer = citiesCluster;
+        return;
+      }
+
+      currentLayer = makeGeoLayer(geo, key);
+      map.addLayer(currentLayer);
+
+      setPanel({
+        title: key.toUpperCase(),
+        name:"—",
+        type:"—",
+        html:"Now click on the map to see details.",
+        flagUrl:null
+      });
+    }catch(e){
+      debug("");
+      setPanel({
+        title:"Error",
+        name:"—",
+        type:"—",
+        html:`⚠️ ${esc(e.message)}<br><span class="mini">Check file names in /data/ folder.</span>`,
+        flagUrl:null
+      });
     }
   }
 
-  document.querySelectorAll("[data-page]").forEach(btn=>{
-    btn.addEventListener("click", ()=>openPage(btn.dataset.page));
-  });
+  // Category dropdown
+  $("category").addEventListener("change", ()=>showCategory($("category").value));
+
+  // Boot
+  showCategory("countries");
+})();
 </script>
 
 </body>
