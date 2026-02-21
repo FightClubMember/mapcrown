@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- ✅ SEO -->
+  <!-- SEO -->
   <title>MapCrown - World Map Explorer, Quiz & Geography Learning</title>
   <meta name="description" content="MapCrown is an interactive geography learning website for UPSC, NDA, CDS, SSC. Explore countries, states, cities, rivers and mountains with quiz & amazing facts." />
   <meta name="keywords" content="mapcrown, world map explorer, geography quiz, upsc geography, nda geography, cds geography, ssc geography, countries map, states map, cities map, rivers map, mountains map, map learning" />
@@ -13,10 +13,11 @@
   <link rel="canonical" href="https://mapcrown.online/" />
 
   <meta property="og:title" content="MapCrown - World Map Explorer & Quiz" />
-  <meta property="og:description" content="Explore countries, states, cities, rivers and mountains. Practice with quizzes and amazing facts. Best for UPSC, NDA, CDS, SSC." />
+  <meta property="og:description" content="Explore countries, states, cities, rivers and mountains. Practice with quizzes and amazing facts." />
   <meta property="og:url" content="https://mapcrown.online/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://mapcrown.online/preview.png" />
+
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://mapcrown.online/preview.png" />
 
@@ -36,7 +37,7 @@
     </div>
 
     <!-- Desktop nav -->
-    <nav class="topNav" aria-label="Desktop navigation">
+    <nav class="topNav">
       <button class="navLink" data-nav="home" type="button">Home</button>
       <button class="navLink" data-nav="contact" type="button">Contact Us</button>
       <button class="navLink" data-nav="about" type="button">About Founder</button>
@@ -65,20 +66,18 @@
       </select>
 
       <button id="btnFacts" disabled>✨ Facts</button>
-      <button id="btnDaily">Daily</button>
       <button id="btnQuiz">Quiz</button>
       <button id="btnExplore" class="active">Explore</button>
 
-      <!-- ✅ Help button to replay onboarding -->
-      <button id="btnHelp" class="ghostBtn" title="How to use">❓ Help</button>
+      <button id="btnHelp" class="ghostBtn" type="button" title="How to use">❓ Help</button>
 
-      <!-- Mobile dropdown menu -->
-      <div class="mobileMenuWrap" id="mobileMenuWrap">
+      <!-- Mobile dropdown -->
+      <div class="mobileMenuWrap">
         <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
-        <div id="mMenu" class="mobileMenu hidden" role="menu" aria-label="Mobile Menu">
-          <button class="mItem" data-nav="home" type="button" role="menuitem">🏠 Home</button>
-          <button class="mItem" data-nav="contact" type="button" role="menuitem">✉️ Contact Us</button>
-          <button class="mItem" data-nav="about" type="button" role="menuitem">👤 About Founder</button>
+        <div id="mMenu" class="mobileMenu hidden">
+          <button class="mItem" data-nav="home" type="button">🏠 Home</button>
+          <button class="mItem" data-nav="contact" type="button">✉️ Contact Us</button>
+          <button class="mItem" data-nav="about" type="button">👤 About Founder</button>
         </div>
       </div>
     </div>
@@ -95,7 +94,7 @@
         <button id="panelToggle" type="button">Details</button>
       </div>
 
-      <div class="panelInner" id="panelInner">
+      <div class="panelInner">
         <h2 id="title">Ready</h2>
 
         <div class="card">
@@ -109,65 +108,28 @@
             <h3>📌 Details</h3>
             <img id="flag" class="flag hidden" alt="Flag">
           </div>
-          <div id="details" class="details">Click on the map to see details…</div>
+          <div id="details" class="details">Pick a category, then click on map to see details…</div>
         </div>
 
         <div id="quizBox" class="quiz hidden">
-          <div class="quizHead">
-            <h3>🧠 Quiz</h3>
-            <div class="miniText">Mode: <span id="quizModeText">Map Quiz</span></div>
-          </div>
-
-          <div class="quizControls">
-            <select id="quizMode" title="Quiz Mode">
-              <option value="map">Map Quiz</option>
-              <option value="topic">Topic-wise</option>
-              <option value="pyq">PYQ</option>
-              <option value="daily">Daily (10)</option>
-            </select>
-
-            <select id="topicPick" title="Topic" class="hidden">
-              <option value="countries">Countries</option>
-              <option value="states">States</option>
-              <option value="cities">Cities</option>
-              <option value="rivers">Rivers</option>
-              <option value="mountains">Mountains</option>
-            </select>
-          </div>
-
-          <p id="qText" class="qText">—</p>
-
-          <div class="mcq">
-            <button class="mcqBtn" data-i="0"></button>
-            <button class="mcqBtn" data-i="1"></button>
-            <button class="mcqBtn" data-i="2"></button>
-            <button class="mcqBtn" data-i="3"></button>
-          </div>
-
-          <p id="qMsg" class="qMsg"></p>
-
-          <div class="scoreRow">
-            <div>Score: <b><span id="score">0</span></b></div>
-            <div id="dailyProgress" class="miniText hidden">Daily: 0/10</div>
-          </div>
+          <h3>🧠 Quiz</h3>
+          <p class="miniText">MCQ mode will be shown here (your existing quiz logic can stay).</p>
         </div>
 
         <p class="hint">
-          ✅ Pick category → click map → details<br>
-          ✅ Facts = real Wikipedia facts<br>
-          ✅ Quiz to practice
+          ✅ Select category → click map → details<br>
+          ✅ Then click ✨ Facts → Next/Close<br>
+          ✅ Mobile: Details panel opens from bottom
         </p>
       </div>
     </aside>
   </main>
 
-  <!-- ✅ SEO text (helps Google rank) -->
   <section class="seoText">
     <h1>MapCrown: World Map Explorer & Geography Quiz</h1>
     <p>
-      MapCrown is an interactive geography learning platform for students preparing for
-      <b>UPSC, NDA, CDS, SSC</b>. Explore <b>countries, states, cities, rivers and mountains</b>,
-      view details instantly, and practice with quizzes.
+      Explore <b>countries, states, cities, rivers and mountains</b>. Designed for
+      <b>UPSC, NDA, CDS, SSC</b> map-based preparation.
     </p>
   </section>
 
@@ -207,19 +169,16 @@
     </div>
   </div>
 
-  <!-- ✅ Pro Onboarding Tour -->
+  <!-- Pro onboarding -->
   <div id="tourOverlay" class="tourOverlay hidden" aria-hidden="true">
     <div id="tourSpotlight" class="tourSpotlight"></div>
-
     <div id="tourCard" class="tourCard" role="dialog" aria-modal="true">
       <div class="tourTop">
         <div class="tourTitle" id="tourTitle">Welcome</div>
         <button id="tourSkip" class="tourGhost" type="button">Skip</button>
       </div>
-
       <div class="tourMeta" id="tourMeta">Step 1/6</div>
       <div class="tourText" id="tourText">—</div>
-
       <div class="tourFooter">
         <div class="tourDots" id="tourDots"></div>
         <div class="tourBtns">
@@ -236,8 +195,8 @@
 
   <script src="app.js"></script>
 
-  <!-- Mobile details bottom-sheet toggle -->
   <script>
+    // mobile details panel
     const panel = document.getElementById("panel");
     const btn = document.getElementById("panelToggle");
     btn?.addEventListener("click", () => panel.classList.toggle("open"));
