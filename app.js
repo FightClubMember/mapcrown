@@ -20,7 +20,18 @@ const CONFIG = {
 
 const $ = (s) => document.querySelector(s);
 
-const UI = {
+const UI = { btnHelp: document.getElementById("btnHelp"),
+
+tourOverlay: document.getElementById("tourOverlay"),
+tourSpotlight: document.getElementById("tourSpotlight"),
+tourCard: document.getElementById("tourCard"),
+tourTitle: document.getElementById("tourTitle"),
+tourMeta: document.getElementById("tourMeta"),
+tourText: document.getElementById("tourText"),
+tourDots: document.getElementById("tourDots"),
+tourNext: document.getElementById("tourNext"),
+tourBack: document.getElementById("tourBack"),
+tourSkip: document.getElementById("tourSkip"),
   category: $("#category"),
   examMode: $("#examMode"),
   indiaFocus: $("#indiaFocus"),
@@ -753,3 +764,4 @@ switchCategory(UI.category.value);
   // Auto-run only once
   window.addEventListener("load", ()=> setTimeout(()=>open(false), 700));
 })();
+
