@@ -2,11 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-
-  <!-- ✅ Mobile -->
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- ✅ SEO: Title + Description -->
+  <!-- ✅ SEO -->
   <title>MapCrown - World Map Explorer, Quiz & Geography Learning</title>
   <meta name="description" content="MapCrown is an interactive geography learning website for UPSC, NDA, CDS, SSC. Explore countries, states, cities, rivers and mountains with quiz & amazing facts." />
   <meta name="keywords" content="mapcrown, world map explorer, geography quiz, upsc geography, nda geography, cds geography, ssc geography, countries map, states map, cities map, rivers map, mountains map, map learning" />
@@ -14,36 +12,13 @@
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://mapcrown.online/" />
 
-  <!-- ✅ Open Graph (WhatsApp / Facebook) -->
   <meta property="og:title" content="MapCrown - World Map Explorer & Quiz" />
   <meta property="og:description" content="Explore countries, states, cities, rivers and mountains. Practice with quizzes and amazing facts. Best for UPSC, NDA, CDS, SSC." />
   <meta property="og:url" content="https://mapcrown.online/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://mapcrown.online/preview.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-
-  <!-- ✅ Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MapCrown - World Map Explorer" />
-  <meta name="twitter:description" content="Interactive map learning + quiz + facts for competitive exams." />
   <meta name="twitter:image" content="https://mapcrown.online/preview.png" />
-
-  <!-- ✅ Favicon (optional) -->
-  <link rel="icon" href="/favicon.ico" />
-
-  <!-- ✅ Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "MapCrown",
-    "url": "https://mapcrown.online/",
-    "description": "Interactive geography learning website with map explorer, quiz and facts for UPSC, NDA, CDS, SSC.",
-    "author": { "@type": "Person", "name": "Himanshu Kumar" },
-    "inLanguage": "en"
-  }
-  </script>
 
   <link rel="stylesheet" href="style.css" />
 
@@ -61,7 +36,7 @@
     </div>
 
     <!-- Desktop nav -->
-    <nav class="topNav">
+    <nav class="topNav" aria-label="Desktop navigation">
       <button class="navLink" data-nav="home" type="button">Home</button>
       <button class="navLink" data-nav="contact" type="button">Contact Us</button>
       <button class="navLink" data-nav="about" type="button">About Founder</button>
@@ -76,7 +51,7 @@
         <option value="ssc">SSC</option>
       </select>
 
-      <label class="toggle">
+      <label class="toggle" id="indiaToggle">
         <input id="indiaFocus" type="checkbox" />
         <span>India Focus</span>
       </label>
@@ -94,8 +69,11 @@
       <button id="btnQuiz">Quiz</button>
       <button id="btnExplore" class="active">Explore</button>
 
+      <!-- ✅ Help button to replay onboarding -->
+      <button id="btnHelp" class="ghostBtn" title="How to use">❓ Help</button>
+
       <!-- Mobile dropdown menu -->
-      <div class="mobileMenuWrap">
+      <div class="mobileMenuWrap" id="mobileMenuWrap">
         <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
         <div id="mMenu" class="mobileMenu hidden" role="menu" aria-label="Mobile Menu">
           <button class="mItem" data-nav="home" type="button" role="menuitem">🏠 Home</button>
@@ -118,7 +96,7 @@
       </div>
 
       <div class="panelInner" id="panelInner">
-        <h2 id="title">Select something</h2>
+        <h2 id="title">Ready</h2>
 
         <div class="card">
           <div class="krow"><span class="k">Name</span><span id="cName" class="v">—</span></div>
@@ -131,7 +109,7 @@
             <h3>📌 Details</h3>
             <img id="flag" class="flag hidden" alt="Flag">
           </div>
-          <div id="details" class="details">Click on map to see details…</div>
+          <div id="details" class="details">Click on the map to see details…</div>
         </div>
 
         <div id="quizBox" class="quiz hidden">
@@ -175,29 +153,22 @@
         </div>
 
         <p class="hint">
-          ✅ Select something → Details<br>
-          ✅ Then click <b>✨ Facts</b> → Close / Next<br>
-          ✅ Mobile: panel slide-up with Details button
+          ✅ Pick category → click map → details<br>
+          ✅ Facts = real Wikipedia facts<br>
+          ✅ Quiz to practice
         </p>
       </div>
     </aside>
   </main>
 
-  <!-- ✅ SEO TEXT (helps Google rank) -->
+  <!-- ✅ SEO text (helps Google rank) -->
   <section class="seoText">
     <h1>MapCrown: World Map Explorer & Geography Quiz</h1>
     <p>
       MapCrown is an interactive geography learning platform for students preparing for
-      <b>UPSC, NDA, CDS, SSC</b> and other competitive exams.
-      Explore <b>countries, states, cities, rivers and mountains</b>, see details, and practice with quizzes.
+      <b>UPSC, NDA, CDS, SSC</b>. Explore <b>countries, states, cities, rivers and mountains</b>,
+      view details instantly, and practice with quizzes.
     </p>
-    <h2>Features</h2>
-    <ul>
-      <li>Explore maps by category (Countries, States, Cities, Rivers, Mountains)</li>
-      <li>India Focus mode for targeted geography practice</li>
-      <li>MCQ quizzes + Daily practice mode</li>
-      <li>Amazing facts popup for selected regions</li>
-    </ul>
   </section>
 
   <footer class="footer">
@@ -236,6 +207,29 @@
     </div>
   </div>
 
+  <!-- ✅ Pro Onboarding Tour -->
+  <div id="tourOverlay" class="tourOverlay hidden" aria-hidden="true">
+    <div id="tourSpotlight" class="tourSpotlight"></div>
+
+    <div id="tourCard" class="tourCard" role="dialog" aria-modal="true">
+      <div class="tourTop">
+        <div class="tourTitle" id="tourTitle">Welcome</div>
+        <button id="tourSkip" class="tourGhost" type="button">Skip</button>
+      </div>
+
+      <div class="tourMeta" id="tourMeta">Step 1/6</div>
+      <div class="tourText" id="tourText">—</div>
+
+      <div class="tourFooter">
+        <div class="tourDots" id="tourDots"></div>
+        <div class="tourBtns">
+          <button id="tourBack" class="tourGhost" type="button">Back</button>
+          <button id="tourNext" class="tourPrimary" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -250,4 +244,3 @@
   </script>
 </body>
 </html>
-```0
