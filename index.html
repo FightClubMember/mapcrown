@@ -1,170 +1,620 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Brevo Form CSS -->
-<link rel="stylesheet" href="https://sibforms.com/forms/end-form/build/sib-styles.css">
-<style>
-/* Brevo fonts */
-@font-face {
-  font-family: Roboto;
-  src: url(https://assets.brevo.com/font/Roboto/Latin/normal/normal/7529907e9eaf8ebb5220c5f9850e3811.woff2);
-}
-</style>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#071427">
+  <title>MapCrown • World Map Explorer, Quiz & Geography Learning</title>
 
-  <title>MapCrown • Geo Explorer</title>
-  <meta name="description" content="MapCrown is an interactive map learning website for UPSC, NDA, CDS, SSC. Explore countries, states, cities, rivers and mountains with details, quiz and facts." />
-  <meta name="author" content="Himanshu Kumar" />
+  <!-- SEO -->
+  <meta name="description" content="MapCrown is an interactive geography learning platform for UPSC, NDA, CDS, SSC and other competitive exams. Explore countries, states, cities, rivers and mountains with quizzes and map practice." />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://mapcrown.online/" />
-<!-- Favicon -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
-<!-- Apple -->
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-
-<!-- Manifest -->
-<link rel="manifest" href="/site.webmanifest">
-
-<meta name="theme-color" content="#0f1b33">
+  <!-- Open Graph -->
   <meta property="og:title" content="MapCrown • Geo Explorer" />
-  <meta property="og:description" content="Explore countries, states, cities, rivers and mountains with details, quiz and facts." />
+  <meta property="og:description" content="Explore countries, states, cities, rivers & mountains with quizzes and map practice for UPSC, NDA, CDS, SSC." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://mapcrown.online/" />
+  <!-- If you have an OG image, set it here -->
+  <!-- <meta property="og:image" content="https://mapcrown.online/assets/og.jpg" /> -->
 
-  <link rel="stylesheet" href="style.css" />
+  <!-- Favicons (put your files in repo root or /assets/) -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/favicon-16.png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- MarkerCluster -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+  <!-- Brevo (Recommended in HEAD) -->
+  <link rel="stylesheet" href="https://sibforms.com/forms/end-form/build/sib-styles.css">
+
+  <style>
+    :root{
+      --bg:#061225;
+      --bg2:#071a33;
+      --card:rgba(255,255,255,.07);
+      --card2:rgba(255,255,255,.10);
+      --stroke:rgba(255,255,255,.14);
+      --text:#eaf1ff;
+      --muted:rgba(234,241,255,.70);
+      --brand:#7aa7ff;
+      --brand2:#2be2ff;
+      --good:#1ad28b;
+      --bad:#ff5b6e;
+      --shadow:0 18px 55px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(43,226,255,.10), transparent 60%),
+        radial-gradient(900px 500px at 80% 10%, rgba(122,167,255,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    /* PREMIUM TOPBAR */
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:999;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(6,18,37,.62);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbarInner{
+      max-width:1200px;
+      margin:0 auto;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+    .logoDot{
+      width:34px;height:34px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(122,167,255,.95), rgba(43,226,255,.85));
+      box-shadow: 0 10px 30px rgba(43,226,255,.20);
+      display:grid; place-items:center;
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .brand small{
+      display:block;
+      font-weight:600;
+      color:var(--muted);
+      font-size:12px;
+      margin-top:2px;
+    }
+
+    /* Desktop nav */
+    .navDesktop{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .pill{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:700;
+      transition:.18s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+    }
+    .pill:hover{transform: translateY(-1px); background:rgba(255,255,255,.09)}
+    .pill:active{transform: translateY(0px) scale(.99)}
+    .pill.primary{
+      border-color: rgba(43,226,255,.35);
+      background: linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));
+    }
+
+    .controls{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    select, .ghostBtn{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      outline:none;
+      font-weight:700;
+      cursor:pointer;
+    }
+    select option{color:#0b1220}
+
+    .ghostBtn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+    }
+
+    /* Mobile hamburger: only mobile */
+    .mobileMenuWrap{display:none; position:relative;}
+    .menuPanel{
+      position:absolute;
+      right:0; top:46px;
+      width:min(260px, 84vw);
+      background:rgba(7,20,39,.92);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:16px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .menuItem{
+      width:100%;
+      text-align:left;
+      padding:12px 14px;
+      border:0;
+      background:transparent;
+      color:var(--text);
+      cursor:pointer;
+      font-weight:800;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .menuItem:last-child{border-bottom:0}
+    .menuItem:hover{background:rgba(255,255,255,.07)}
+    .hidden{display:none !important;}
+
+    /* LAYOUT */
+    .layout{
+      max-width:1200px;
+      margin:14px auto 0;
+      padding:0 14px 22px;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:14px;
+      align-items:stretch;
+    }
+    .stage, .panel{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.05);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    #map{
+      height: calc(100vh - 170px);
+      min-height:520px;
+      width:100%;
+      background:#0b1220;
+    }
+
+    .panel{
+      display:flex;
+      flex-direction:column;
+      min-height:520px;
+    }
+    .panelHeader{
+      padding:14px 14px 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .panelHeader h2{
+      margin:0 0 6px;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .panelHeader p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .panelBody{
+      padding:12px 14px 14px;
+      overflow:auto;
+    }
+    .card{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    .krow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:7px 0;
+      border-bottom:1px dashed rgba(255,255,255,.10);
+    }
+    .krow:last-child{border-bottom:0}
+    .k{color:var(--muted);font-weight:700}
+    .v{font-weight:900}
+
+    .details{
+      color:rgba(234,241,255,.90);
+      line-height:1.55;
+      font-size:14px;
+    }
+
+    .flag{
+      width:44px;
+      height:30px;
+      object-fit:cover;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 10px 25px rgba(0,0,0,.25);
+    }
+
+    /* FOOTER */
+    .footer{
+      max-width:1200px;
+      margin:10px auto 30px;
+      padding:0 14px;
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    /* MODALS */
+    .modal{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.58);
+      backdrop-filter: blur(10px);
+      display:grid;
+      place-items:center;
+      z-index:10000;
+      padding:14px;
+    }
+    .modalCard{
+      width:min(720px, 96vw);
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(7,20,39,.92);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modalHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 14px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .modalHead h3{margin:0;font-size:18px}
+    .modalBody{padding:14px}
+
+    /* Brevo form premium wrapper */
+    .brevoWrap{
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+    /* Override Brevo default pale background */
+    .sib-form{background:transparent !important;}
+    #sib-container{
+      background: transparent !important;
+      border:0 !important;
+      max-width:100% !important;
+    }
+    .sib-form-container{max-width:100% !important;}
+    .sib-form .sib-container--large{padding:0 !important;}
+
+    /* Make Brevo input/button match theme */
+    #sib-container input.input{
+      border-radius:14px !important;
+      border:1px solid rgba(255,255,255,.14) !important;
+      background:rgba(255,255,255,.06) !important;
+      color:var(--text) !important;
+      padding:14px 14px !important;
+      font-weight:800 !important;
+      outline:none !important;
+    }
+    #sib-container input::placeholder{color:rgba(234,241,255,.55) !important;}
+    .sib-form-block__button{
+      border-radius:14px !important;
+      background: linear-gradient(135deg, rgba(43,226,255,.35), rgba(122,167,255,.25)) !important;
+      border:1px solid rgba(43,226,255,.35) !important;
+      color:var(--text) !important;
+      padding:12px 14px !important;
+      font-weight:900 !important;
+      width:100% !important;
+    }
+
+    /* Mobile fix: top UI clean + hamburger only */
+    @media (max-width: 980px){
+      .layout{grid-template-columns:1fr; gap:12px;}
+      #map{height: calc(100vh - 210px); min-height:460px;}
+      .navDesktop{display:none;}
+      .mobileMenuWrap{display:block;}
+      .controls{gap:8px; justify-content:flex-end;}
+      /* make selects smaller */
+      select, .ghostBtn, .pill{padding:10px 11px; font-size:13px;}
+    }
+
+    /* Extra small */
+    @media (max-width: 480px){
+      .brandText{display:none;}
+      .controls select{max-width:140px;}
+    }
+  </style>
 </head>
 
 <body>
+
+  <!-- TOPBAR -->
   <header class="topbar">
-    <div class="left">
-      <div class="brand">👑 MapCrown</div>
-    </div>
+    <div class="topbarInner">
+      <div class="brand">
+        <div class="logoDot">👑</div>
+        <div class="brandText">
+          MapCrown
+          <small>World Map • Quiz • Exam Practice</small>
+        </div>
+      </div>
 
-    <!-- Desktop nav (hidden on mobile via CSS) -->
-    <nav class="topNav">
-      <button class="navLink" data-nav="home" type="button">Home</button>
-      <button class="navLink" data-nav="contact" type="button">Contact Us</button>
-      <button class="navLink" data-nav="about" type="button">About Founder</button>
-    </nav>
+      <!-- Desktop navigation (PC only) -->
+      <nav class="navDesktop" aria-label="Primary">
+        <button class="pill" type="button" data-nav="home">Home</button>
+        <button class="pill" type="button" data-nav="contact">Contact</button>
+        <button class="pill" type="button" data-nav="about">About Founder</button>
+      </nav>
 
-    <div class="topControls">
-      <select id="examMode" title="Exam Mode">
-        <option value="general">General</option>
-        <option value="upsc">UPSC</option>
-        <option value="nda">NDA</option>
-        <option value="cds">CDS</option>
-        <option value="ssc">SSC</option>
-      </select>
+      <!-- Controls -->
+      <div class="controls">
+        <select id="examMode" title="Exam Mode">
+          <option value="general">General</option>
+          <option value="upsc">UPSC</option>
+          <option value="nda">NDA</option>
+          <option value="cds">CDS</option>
+          <option value="ssc">SSC</option>
+        </select>
 
-      <label class="toggle" id="indiaToggle" title="Show India-only features">
-        <input id="indiaFocus" type="checkbox" />
-        <span>India Focus</span>
-      </label>
+        <!-- ✅ India Focus removed -->
+        <select id="category" title="Category">
+          <option value="countries">Countries</option>
+          <option value="states">States</option>
+          <option value="cities">Cities</option>
+          <option value="rivers">Rivers</option>
+          <option value="mountains">Mountains</option>
+        </select>
 
-      <select id="category" title="Category">
-        <option value="countries">Countries</option>
-        <option value="states">States</option>
-        <option value="cities">Cities</option>
-        <option value="rivers">Rivers</option>
-        <option value="mountains">Mountains</option>
-      </select>
+        <button id="btnHelp" class="ghostBtn" type="button">❓ Help</button>
+        <button id="btnSubscribe" class="pill primary" type="button">📩 Subscribe</button>
 
-      <button id="btnFacts" disabled>✨ Facts</button>
-<button id="btnHelp" class="ghostBtn" type="button" title="How to use">❓ Help</button>
-
-      <!-- Mobile menu (hidden on desktop via CSS) -->
-      <div class="mobileMenuWrap">
-        <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
-        <div id="mMenu" class="mobileMenu hidden">
-          <button class="mItem" data-nav="home" type="button">🏠 Home</button>
-          <button class="mItem" data-nav="contact" type="button">✉️ Contact Us</button>
-          <button class="mItem" data-nav="about" type="button">👤 About Founder</button>
+        <!-- Mobile menu only -->
+        <div class="mobileMenuWrap">
+          <button id="mMenuBtn" class="ghostBtn" type="button" aria-label="Menu">☰</button>
+          <div id="mMenu" class="menuPanel hidden" role="menu" aria-label="Mobile Menu">
+            <button class="menuItem" type="button" data-nav="home">🏠 Home</button>
+            <button class="menuItem" type="button" data-nav="contact">✉️ Contact</button>
+            <button class="menuItem" type="button" data-nav="about">👤 About Founder</button>
+            <button class="menuItem" type="button" id="mOpenSubscribe">📩 Subscribe</button>
+          </div>
         </div>
       </div>
     </div>
   </header>
 
+  <!-- MAIN -->
   <main class="layout" id="home">
-    <section class="stage">
-      <div id="map" class="stageItem"></div>
+    <section class="stage" aria-label="Map">
+      <div id="map"></div>
     </section>
 
-    <aside class="panel" id="panel">
-      <div class="mobilePanelBar">
-        <div class="handle"></div>
-        <button id="panelToggle" type="button">Details</button>
+    <aside class="panel" aria-label="Details panel">
+      <div class="panelHeader">
+        <h2 id="title">Select something</h2>
+        <p>Tap/click on map to see details. Use category & exam mode for practice.</p>
       </div>
 
-      <div class="panelInner">
-        <h2 id="title">Ready</h2>
-
+      <div class="panelBody">
         <div class="card">
           <div class="krow"><span class="k">Name</span><span id="cName" class="v">—</span></div>
           <div class="krow"><span class="k">Type</span><span id="cType" class="v">—</span></div>
           <div class="krow"><span class="k">Exam Mode</span><span id="modeText" class="v">General</span></div>
         </div>
 
-        <div class="card" style="margin-top:12px;">
-          <div class="cardHead">
-            <h3>📌 Details</h3>
-            <img id="flag" class="flag hidden" alt="Flag">
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <h3 style="margin:0;">📌 Details</h3>
+            <img id="flag" class="flag hidden" alt="Flag" />
           </div>
-          <div id="details" class="details">
-            Pick a category, then click on map to see details…
+          <div id="details" class="details" style="margin-top:10px;">Click on map to see details…</div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px;">📌 Quick Tips</h3>
+          <div class="details">
+            ✅ Choose a category (Countries/States/Cities/Rivers/Mountains)<br>
+            ✅ Click on any item → read details on right<br>
+            ✅ Use <b>Help</b> for first-time guide & shortcuts
           </div>
         </div>
 
-        <p class="hint">
-          ✅ Select category → click map → details<br>
-          ✅ Then click ✨ Facts → Next/Close<br>
-          ✅ Mobile: Details panel opens from bottom
-        </p>
+        <div class="card">
+          <h3 style="margin:0 0 8px;">📩 Get Updates</h3>
+          <div class="details">Subscribe and receive map practice guides + new updates.</div>
+          <div style="margin-top:10px;">
+            <button class="pill primary" type="button" id="panelSubscribeBtn">Subscribe Now</button>
+          </div>
+          <div style="margin-top:10px; font-size:12px; color:var(--muted);">
+            Form link: <a href="https://db151eb5.sibforms.com/serve/MUIFADqAs_XXKqNfYAF7xFrF9YRCZD_vkNiqLSQflLgICazHcrDQsHyRVzLTzcMffVXJ0fBw2lMh7dmIkD5iMUxzMGr_35NLQkWCPyLXaBreyPR2sTS-Xu97alcBDyeOeSBiCI0sUqeNUUtz9OumNhfmYAgzPQPgy9-Q-CsXqN-W9zTKoLP0vt2dCOqiwHAEfKXPK8ySZOjy71grgw==" target="_blank" rel="noopener">open</a>
+          </div>
+        </div>
       </div>
     </aside>
   </main>
 
   <footer class="footer">
-    <div class="footerLeft">
-      <div class="footerTitle">MapCrown</div>
-      <div class="footerSub">Created by <b>Himanshu Kumar</b></div>
+    <div>
+      <b style="color:var(--text)">MapCrown</b><br>
+      Built for UPSC • NDA • CDS • SSC learning.
+    </div>
+    <div>
+      Created by <b style="color:var(--text)">Himanshu Kumar</b><br>
+      © <span id="yr"></span> mapcrown.online
     </div>
   </footer>
 
-  <!-- Info Modal -->
-  <div id="infoModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+  <!-- HELP MODAL -->
+  <div id="helpModal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modalCard">
       <div class="modalHead">
-        <h3 id="infoTitle">—</h3>
-        <button id="infoClose" class="btnGhost" type="button">Close</button>
+        <h3>❓ How to use MapCrown</h3>
+        <button class="ghostBtn" type="button" id="helpClose">Close</button>
       </div>
-      <div id="infoBody" class="modalBody"></div>
+      <div class="modalBody">
+        <div class="details">
+          <b>Step 1:</b> Select a <b>Category</b> from the top (Countries/States/Cities/Rivers/Mountains).<br><br>
+          <b>Step 2:</b> Tap/click the map item to view details in the right panel.<br><br>
+          <b>Step 3:</b> Change <b>Exam Mode</b> to practice with the correct focus (UPSC/NDA/CDS/SSC).<br><br>
+          <b>Tip:</b> On mobile, use the <b>☰ menu</b> for pages and Subscribe popup.
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Facts Modal -->
-  <div id="factsModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+  <!-- SUBSCRIBE MODAL (Brevo Form inside) -->
+  <div id="subModal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modalCard">
       <div class="modalHead">
-        <h3>✨ Amazing Facts</h3>
-        <button id="closeFacts" class="btnGhost" type="button">Close</button>
+        <h3>📩 Join MapCrown Newsletter</h3>
+        <button class="ghostBtn" type="button" id="subClose">Close</button>
       </div>
-      <div class="factsTop">
-        <div class="factsTitle" id="factsTitle">—</div>
-        <div class="factsMeta" id="factsMeta">—</div>
-      </div>
-      <div class="factsBox" id="factsBox">Select something, then click Facts.</div>
-      <div class="factsActions">
-        <button id="nextFact" type="button">Next Fact ➜</button>
+      <div class="modalBody">
+        <div class="details" style="margin-bottom:10px;">
+          Get premium map practice updates + new features. Confirm subscription via email (double opt-in).
+        </div>
+
+        <div class="brevoWrap">
+          <!-- ========== Brevo Form (cleaned + your link extracted) ========== -->
+          <div class="sib-form" style="text-align:center;">
+            <div id="sib-form-container" class="sib-form-container">
+
+              <div id="error-message" class="sib-form-message-panel" style="font-size:14px;text-align:left;font-family:Arial;color:#fff;background:rgba(255,91,110,.18);border-radius:14px;border:1px solid rgba(255,91,110,.35);max-width:720px;display:none;">
+                <div class="sib-form-message-panel__text sib-form-message-panel__text--center">
+                  <span class="sib-form-message-panel__inner-text">⚠️ Something went wrong. Please try again.</span>
+                </div>
+              </div>
+
+              <div id="success-message" class="sib-form-message-panel" style="font-size:14px;text-align:left;font-family:Arial;color:#fff;background:rgba(26,210,139,.18);border-radius:14px;border:1px solid rgba(26,210,139,.35);max-width:720px;display:none;">
+                <div class="sib-form-message-panel__text sib-form-message-panel__text--center">
+                  <span class="sib-form-message-panel__inner-text">
+                    ✅ Subscription Successful! Welcome to MapCrown 👑<br>
+                    📩 Please check your email and confirm your subscription.
+                  </span>
+                </div>
+              </div>
+
+              <div id="sib-container" class="sib-container--large sib-container--vertical" style="direction:ltr">
+                <form id="sib-form" method="POST"
+                  action="https://db151eb5.sibforms.com/serve/MUIFADqAs_XXKqNfYAF7xFrF9YRCZD_vkNiqLSQflLgICazHcrDQsHyRVzLTzcMffVXJ0fBw2lMh7dmIkD5iMUxzMGr_35NLQkWCPyLXaBreyPR2sTS-Xu97alcBDyeOeSBiCI0sUqeNUUtz9OumNhfmYAgzPQPgy9-Q-CsXqN-W9zTKoLP0vt2dCOqiwHAEfKXPK8ySZOjy71grgw=="
+                  data-type="subscription">
+
+                  <div style="padding: 12px 0 6px;">
+                    <div class="sib-form-block" style="font-size:22px;text-align:left;font-weight:900;color:#eaf1ff;">
+                      Start Your Geography Journey 🌍
+                    </div>
+                  </div>
+
+                  <div style="padding: 6px 0 12px;">
+                    <div class="sib-text-form-block" style="text-align:left;color:rgba(234,241,255,.75);font-weight:700;">
+                      Prepare smarter for UPSC, NDA, CDS & SSC with MapCrown.
+                      <br>🎁 Get FREE map practice tips on signup.
+                    </div>
+                  </div>
+
+                  <div style="padding: 8px 0;">
+                    <div class="sib-input sib-form-block">
+                      <div class="form__entry entry_block">
+                        <div class="form__label-row ">
+                          <label class="entry__label" style="font-weight:900;text-align:left;font-size:14px;color:#eaf1ff;" for="EMAIL" data-required="*">
+                            Email address
+                          </label>
+                          <div class="entry__field">
+                            <input class="input" type="text" id="EMAIL" name="EMAIL" autocomplete="off"
+                              placeholder="you@example.com" data-required="true" required />
+                          </div>
+                        </div>
+                        <label class="entry__error entry__error--primary" style="font-size:13px;color:#ffb7c0;"></label>
+                        <label class="entry__specification" style="font-size:12px;text-align:left;color:rgba(234,241,255,.55);font-weight:700;">
+                          ⚡ Join 1000+ learners. Unsubscribe anytime.
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="padding: 8px 0;">
+                    <div class="sib-captcha sib-form-block">
+                      <div class="form__entry entry_block">
+                        <div class="form__label-row ">
+                          <script>
+                            function handleCaptchaResponse() {
+                              var event = new Event('captchaChange');
+                              document.getElementById('sib-captcha').dispatchEvent(event);
+                            }
+                          </script>
+                          <div class="g-recaptcha sib-visible-recaptcha" id="sib-captcha"
+                            data-sitekey="6LeWDHMsAAAAADqINc3A5duqmUTgPyg81rmPs1bW"
+                            data-callback="handleCaptchaResponse" style="direction:ltr"></div>
+                        </div>
+                        <label class="entry__error entry__error--primary" style="font-size:13px;color:#ffb7c0;"></label>
+                        <label class="entry__specification" style="font-size:12px;text-align:left;color:rgba(234,241,255,.55);font-weight:700;">
+                          Protected by reCAPTCHA
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="padding: 10px 0 2px;">
+                    <div class="sib-form-block" style="text-align: left">
+                      <button class="sib-form-block__button sib-form-block__button-with-loader" form="sib-form" type="submit">
+                        Join Now 🚀
+                      </button>
+                    </div>
+                  </div>
+
+                  <input type="text" name="email_address_check" value="" class="input--hidden">
+                  <input type="hidden" name="locale" value="en">
+                </form>
+              </div>
+
+            </div>
+          </div>
+          <!-- ========== /Brevo Form ========== -->
+        </div>
+
+        <div class="details" style="margin-top:10px;font-size:12px;color:rgba(234,241,255,.55);">
+          If you don’t see email, check Spam/Promotions and mark as “Not spam”.
+        </div>
       </div>
     </div>
   </div>
@@ -173,35 +623,82 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <script src="app.js"></script>
-
+  <!-- Brevo scripts (Recommended at bottom) -->
   <script>
-    // Mobile details bottom-sheet toggle
-    const panel = document.getElementById("panel");
-    const btn = document.getElementById("panelToggle");
-    btn?.addEventListener("click", () => panel.classList.toggle("open"));
+    window.REQUIRED_CODE_ERROR_MESSAGE = 'Please choose a country code';
+    window.LOCALE = 'en';
+    window.EMAIL_INVALID_MESSAGE = window.SMS_INVALID_MESSAGE = "❌ Please enter a valid email address";
+    window.REQUIRED_ERROR_MESSAGE = "⚠️ Email is required to continue";
+    window.GENERIC_INVALID_MESSAGE = "❌ Please enter a valid email address";
+    window.translation = { common: { selectedList: '{quantity} list selected', selectedLists: '{quantity} lists selected' } };
+    var AUTOHIDE = Boolean(0);
   </script>
-<!-- Pro Onboarding / Tutorial -->
-<button id="btnHelp" class="ghostBtn" type="button">❓ Help</button>
+  <script defer src="https://sibforms.com/forms/end-form/build/main.js"></script>
+  <script src="https://www.google.com/recaptcha/api.js?hl=en"></script>
 
-<div id="tourOverlay" class="tourOverlay hidden">
-  <div id="tourSpotlight" class="tourSpotlight"></div>
+  <!-- Premium UI JS (Menu + Modals + Year) -->
+  <script>
+    // Year
+    document.getElementById('yr').textContent = new Date().getFullYear();
 
-  <div id="tourCard" class="tourCard">
-    <div class="tourTop">
-      <div class="tourTitle" id="tourTitle">Welcome</div>
-      <button id="tourSkip" class="tourGhost" type="button">Skip</button>
-    </div>
-    <div class="tourMeta" id="tourMeta">Step 1/5</div>
-    <div class="tourText" id="tourText">—</div>
-    <div class="tourFooter">
-      <div class="tourDots" id="tourDots"></div>
-      <div class="tourBtns">
-        <button id="tourBack" class="tourGhost" type="button">Back</button>
-        <button id="tourNext" class="tourPrimary" type="button">Next</button>
-      </div>
-    </div>
-  </div>
-</div>
+    // Mobile menu
+    const mBtn = document.getElementById('mMenuBtn');
+    const mMenu = document.getElementById('mMenu');
+    function closeMenu(){ mMenu.classList.add('hidden'); }
+    mBtn?.addEventListener('click', () => mMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => {
+      if (!mMenu || !mBtn) return;
+      const inside = mMenu.contains(e.target) || mBtn.contains(e.target);
+      if (!inside) closeMenu();
+    });
 
+    // Help modal
+    const helpModal = document.getElementById('helpModal');
+    document.getElementById('btnHelp')?.addEventListener('click', () => helpModal.classList.remove('hidden'));
+    document.getElementById('helpClose')?.addEventListener('click', () => helpModal.classList.add('hidden'));
+    helpModal?.addEventListener('click', (e)=>{ if(e.target===helpModal) helpModal.classList.add('hidden'); });
 
+    // Subscribe modal
+    const subModal = document.getElementById('subModal');
+    const openSub = ()=> subModal.classList.remove('hidden');
+    const closeSub = ()=> subModal.classList.add('hidden');
+
+    document.getElementById('btnSubscribe')?.addEventListener('click', openSub);
+    document.getElementById('panelSubscribeBtn')?.addEventListener('click', openSub);
+    document.getElementById('mOpenSubscribe')?.addEventListener('click', ()=>{ closeMenu(); openSub(); });
+    document.getElementById('subClose')?.addEventListener('click', closeSub);
+    subModal?.addEventListener('click', (e)=>{ if(e.target===subModal) closeSub(); });
+
+    // Nav buttons (wire these to your sections/pages)
+    document.querySelectorAll('[data-nav]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const dest = btn.getAttribute('data-nav');
+        closeMenu();
+        if(dest==='contact'){ alert('Contact page: create contact.html or open your contact modal'); }
+        if(dest==='about'){ alert('About Founder page: create about.html or open your about modal'); }
+        if(dest==='home'){ window.scrollTo({top:0, behavior:'smooth'}); }
+      });
+    });
+
+    // MAP INIT (basic starter)
+    // NOTE: Keep your existing map logic if you already have app.js.
+    const map = L.map('map', { zoomControl: true }).setView([20.5937, 78.9629], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+    // Update mode text
+    const modeSel = document.getElementById('examMode');
+    const modeText = document.getElementById('modeText');
+    modeSel?.addEventListener('change', ()=> modeText.textContent = modeSel.value.toUpperCase());
+
+    // Click example detail
+    map.on('click', ()=>{
+      document.getElementById('title').textContent = 'Ready';
+      document.getElementById('cName').textContent = 'Select a country/state/city';
+      document.getElementById('cType').textContent = 'Map';
+      document.getElementById('details').innerHTML =
+        'Now pick a category from top and click an item on the map. ' +
+        'If your GeoJSON is loading, you will see full details here.';
+    });
+  </script>
+</body>
+</html>
