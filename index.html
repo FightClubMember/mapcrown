@@ -1,613 +1,287 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MapCrown • Geo Explorer</title>
-  <meta name="description" content="Explore Countries, States, Cities, Rivers & Mountains on a satellite map. Learn faster with MapCrown." />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MapCrown • Geo Explorer</title>
 
-  <!-- Leaflet + Cluster -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-  <style>
-    :root{
-      --bg:#061225; --bg2:#071a33;
-      --text:#eaf1ff; --muted:rgba(234,241,255,.72);
-      --card:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.12);
-      --shadow:0 18px 55px rgba(0,0,0,.35);
-      --r:18px; --c1:#2be2ff; --c2:#7aa7ff;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background:
-        radial-gradient(1200px 600px at 20% 0%, rgba(43,226,255,.10), transparent 60%),
-        radial-gradient(900px 500px at 80% 10%, rgba(122,167,255,.12), transparent 55%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
-      color:var(--text);
-      overflow-x:hidden;
-    }
+<style>
+  :root{
+    --bg:#071427;
+    --card:#0e1f3d;
+    --stroke:#1e2c44;
+    --text:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Arial;background:var(--bg);color:var(--text);}
 
-    /* Topbar */
-    .topbar{
-      position:sticky; top:0; z-index:1000;
-      background:rgba(6,18,37,.62);
-      backdrop-filter: blur(14px);
-      border-bottom:1px solid rgba(255,255,255,.08);
-      padding:12px 14px;
-    }
-    .topbarInner{
-      max-width:1200px; margin:0 auto;
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px;
-    }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:900; min-width:max-content;}
-    .logoDot{
-      width:34px;height:34px;border-radius:12px;
-      background: linear-gradient(135deg, rgba(122,167,255,.95), rgba(43,226,255,.85));
-      border:1px solid rgba(255,255,255,.16);
-      display:grid; place-items:center;
-      box-shadow: 0 10px 30px rgba(43,226,255,.20);
-    }
-    .brandText small{display:block; font-size:12px; font-weight:700; color:var(--muted); margin-top:2px;}
+  /* FIXED HEADER (always above everything) */
+  .topbar{
+    position:fixed; top:0; left:0; right:0;
+    height:60px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 14px;
+    background:rgba(7,20,39,.95);
+    border-bottom:1px solid var(--stroke);
+    z-index:999999; /* IMPORTANT */
+  }
+  .brand{font-weight:900; letter-spacing:.2px}
 
-    .controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
-    select,.btn{
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:999px;
-      outline:none;
-      font-weight:800;
-      cursor:pointer;
-    }
-    select option{color:#0b1220}
+  /* Desktop nav (optional) */
+  .topNav{display:flex; gap:10px; align-items:center;}
+  .topNav button{
+    background:var(--card);
+    color:var(--text);
+    border:1px solid rgba(255,255,255,.08);
+    padding:8px 10px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:800;
+  }
 
-    /* Layout */
-    .wrap{
-      max-width:1200px;
-      margin:14px auto 18px;
-      padding:0 14px;
-      display:grid;
-      grid-template-columns: 1fr 360px;
-      gap:14px;
-      align-items:stretch;
-    }
-    .stage,.panel{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: var(--r);
-      background: rgba(255,255,255,.05);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    #map{
-      height: calc(100vh - 150px);
-      min-height:520px;
-      width:100%;
-      background:#0b1220;
-    }
+  /* MENU BUTTON (ALWAYS visible) */
+  .menuBtn{
+    width:44px;height:44px;
+    display:grid;place-items:center;
+    font-size:22px;
+    background:var(--card);
+    border:1px solid rgba(255,255,255,.10);
+    color:var(--text);
+    border-radius:12px;
+    cursor:pointer;
+    z-index:999999;
+  }
 
-    .panel{display:flex; flex-direction:column;}
-    .panelHead{padding:14px; border-bottom:1px solid rgba(255,255,255,.08);}
-    .panelHead h2{margin:0 0 6px; font-size:18px}
-    .panelHead p{margin:0; color:var(--muted); font-size:13px; line-height:1.45;}
-    .panelBody{padding:12px 14px 14px; overflow:auto;}
-    .card{
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:12px;
-      margin-bottom:12px;
-    }
-    .krow{display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px dashed rgba(255,255,255,.10);}
-    .krow:last-child{border-bottom:0}
-    .k{color:var(--muted); font-weight:800}
-    .v{font-weight:900}
-    .details{color:rgba(234,241,255,.92); font-size:14px; line-height:1.55;}
-    .mini{font-size:12px; color:rgba(234,241,255,.60); line-height:1.5;}
-    .flag{width:64px;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.16);object-fit:cover;box-shadow:0 10px 25px rgba(0,0,0,.25);}
-    .hidden{display:none !important;}
+  /* Mobile: hide topNav only (menu stays) */
+  @media(max-width:768px){
+    .topNav{display:none;}
+  }
 
-    /* Modal */
-    .modal{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.58);
-      backdrop-filter: blur(10px);
-      display:grid; place-items:center;
-      z-index:9999;
-      padding:14px;
-    }
-    .modalCard{
-      width:min(640px, 96vw);
-      border-radius:20px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(7,20,39,.92);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .modalHead{
-      display:flex; justify-content:space-between; align-items:center;
-      padding:14px; border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .modalBody{padding:14px}
-    .input{
-      width:100%;
-      padding:14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      color:var(--text);
-      font-weight:900;
-      outline:none;
-    }
-    .cta{
-      width:100%;
-      margin-top:10px;
-      padding:12px 14px;
-      border-radius:14px;
-      cursor:pointer;
-      font-weight:1000;
-      border:1px solid rgba(43,226,255,.35);
-      background:linear-gradient(135deg, rgba(43,226,255,.18), rgba(122,167,255,.12));
-      color:var(--text);
-    }
+  /* MAP */
+  #map{
+    position:relative;
+    height:calc(100vh - 60px);
+    margin-top:60px;  /* push below header */
+    z-index:1;
+  }
 
-    /* Footer */
-    .footer{
-      max-width:1200px; margin:10px auto 26px; padding:0 14px;
-      color:var(--muted); font-size:13px;
-      display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
-    }
+  /* RIGHT PANEL */
+  .panel{
+    position:fixed;
+    right:10px;
+    top:75px;
+    width:280px;
+    background:rgba(14,31,61,.92);
+    border:1px solid rgba(255,255,255,.10);
+    padding:12px;
+    border-radius:14px;
+    z-index:9999;
+    backdrop-filter: blur(10px);
+  }
+  .panel h3{margin:0 0 8px}
+  .panel .muted{opacity:.85;font-size:13px;line-height:1.4}
 
-    @media (max-width: 980px){
-      .wrap{grid-template-columns:1fr; gap:12px;}
-      #map{height: calc(100vh - 210px); min-height:460px;}
+  @media(max-width:768px){
+    .panel{
+      width:calc(100% - 20px);
+      left:10px; right:10px;
+      top:auto;
+      bottom:10px;
     }
-  </style>
+  }
+
+  /* MENU DROPDOWN (must be ABOVE map) */
+  .mobileMenu{
+    position:fixed;
+    top:70px;
+    right:10px;
+    width:220px;
+    background:rgba(14,31,61,.97);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 16px 50px rgba(0,0,0,.45);
+    z-index:999999; /* IMPORTANT */
+    display:none;
+  }
+  .mobileMenu button{
+    width:100%;
+    text-align:left;
+    padding:12px 12px;
+    border:0;
+    background:transparent;
+    color:var(--text);
+    font-weight:900;
+    cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .mobileMenu button:last-child{border-bottom:0}
+
+  /* MODAL */
+  .modal{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.65);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    z-index:999999;
+  }
+  .modalBox{
+    width:min(520px, 94vw);
+    background:rgba(14,31,61,.98);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;
+    padding:16px;
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
+  }
+  .modalBox h3{margin:0 0 8px}
+  .modalBox p{margin:0 0 10px; opacity:.9; line-height:1.55}
+  .closeBtn{
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    cursor:pointer;
+    font-weight:900;
+  }
+  a{color:#7aa7ff}
+</style>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="topbarInner">
-      <div class="brand">
-        <div class="logoDot">👑</div>
-        <div class="brandText">
-          MapCrown
-          <small>Satellite • Geo Learning</small>
-        </div>
-      </div>
 
-      <div class="controls">
-        <select id="category" title="Category">
-          <option value="countries">Countries</option>
-          <option value="states">States</option>
-          <option value="cities">Cities</option>
-          <option value="rivers">Rivers</option>
-          <option value="mountains">Mountains</option>
-        </select>
+<header class="topbar">
+  <div class="brand">👑 MapCrown</div>
 
-        <button class="btn" id="btnFacts" disabled>✨ Facts</button>
-        <button class="btn" id="btnHelp">❓ Help</button>
-        <button class="btn" id="btnSubscribe">📩 Subscribe</button>
-      </div>
-    </div>
-  </header>
+  <nav class="topNav">
+    <button data-page="home" type="button">Home</button>
+    <button data-page="about" type="button">About</button>
+    <button data-page="contact" type="button">Contact</button>
+  </nav>
 
-  <main class="wrap">
-    <section class="stage"><div id="map"></div></section>
+  <!-- MENU BUTTON ALWAYS VISIBLE -->
+  <button class="menuBtn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+</header>
 
-    <aside class="panel">
-      <div class="panelHead">
-        <h2 id="title">Ready</h2>
-        <p>Select category → click map → view details.</p>
-      </div>
+<!-- Dropdown Menu -->
+<div id="menu" class="mobileMenu">
+  <button data-page="home" type="button">🏠 Home</button>
+  <button data-page="about" type="button">👤 About Founder</button>
+  <button data-page="contact" type="button">📧 Contact</button>
+</div>
 
-      <div class="panelBody">
-        <div class="card">
-          <div class="krow"><span class="k">Name</span><span id="cName" class="v">—</span></div>
-          <div class="krow"><span class="k">Type</span><span id="cType" class="v">—</span></div>
-        </div>
+<div id="map"></div>
 
-        <div class="card">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <div class="details" style="font-weight:1000;">Details</div>
-            <img id="flag" class="flag hidden" alt="Flag"/>
-          </div>
-          <div id="details" class="details" style="margin-top:10px;">Click map to see details</div>
-          <div id="debug" class="mini" style="margin-top:10px;"></div>
-        </div>
-      </div>
-    </aside>
-  </main>
+<!-- Details Panel -->
+<div class="panel">
+  <h3 id="title">Ready</h3>
+  <div class="muted"><b>Name:</b> <span id="name">—</span></div>
+  <div class="muted" id="details" style="margin-top:6px;">Tap the map to see lat/long.</div>
+</div>
 
-  <footer class="footer">
-    <div><b style="color:var(--text)">MapCrown</b> • Geography learning</div>
-    <div>Created by <b style="color:var(--text)">Himanshu Kumar</b></div>
-  </footer>
+<!-- Modal -->
+<div id="modal" class="modal" role="dialog" aria-modal="true">
+  <div class="modalBox" id="modalBox"></div>
+</div>
 
-  <!-- Subscribe Modal -->
-  <div id="subModal" class="modal hidden" aria-hidden="true">
-    <div class="modalCard">
-      <div class="modalHead">
-        <h3>📩 Subscribe to MapCrown</h3>
-        <button class="btn" id="closeSub" type="button">Close</button>
-      </div>
-      <div class="modalBody">
-        <div class="details">Enter your email. You will see “✅ Sent” here.</div>
-        <input class="input" id="subEmail" type="email" placeholder="you@example.com" required />
-        <button class="cta" id="subSend" type="button">Send / Subscribe</button>
-        <div id="subMsg" class="mini" style="margin-top:10px;"></div>
-      </div>
-    </div>
-  </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Help Modal -->
-  <div id="helpModal" class="modal hidden" aria-hidden="true">
-    <div class="modalCard">
-      <div class="modalHead">
-        <h3>❓ How to Use</h3>
-        <button class="btn" id="closeHelp" type="button">Close</button>
-      </div>
-      <div class="modalBody">
-        <div class="details" style="line-height:1.7;">
-          1) Select category (Countries/States/Cities/Rivers/Mountains)<br>
-          2) Click on map to select & highlight<br>
-          3) Details show on right panel<br><br>
-          <b>Data Source:</b><br>
-          • Map shapes come from your site: <code>/data/*.json</code><br>
-          • Country extra details come from internet:<br>
-          - Wikipedia summary + image<br>
-          - RestCountries flag + capital + currency + population
-        </div>
-      </div>
-    </div>
-  </div>
+<script>
+  // MAP
+  const map = L.map('map').setView([20,78],3);
+  L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 19 }
+  ).addTo(map);
 
-  <!-- Leaflet -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  map.on("click", (e) => {
+    const lat = e.latlng.lat.toFixed(4);
+    const lng = e.latlng.lng.toFixed(4);
+    document.getElementById("title").textContent = "Selected";
+    document.getElementById("name").textContent = "Location";
+    document.getElementById("details").innerHTML = `Latitude: <b>${lat}</b><br>Longitude: <b>${lng}</b>`;
+  });
 
-  <script>
-    const $ = (id)=>document.getElementById(id);
-    const dbg = (t)=>$("debug").textContent = t || "";
-    const esc = (s)=>String(s ?? "").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+  // MENU LOGIC (NO ONCLICK, PURE JS)
+  const menuBtn = document.getElementById("menuBtn");
+  const menu = document.getElementById("menu");
 
-    function setFlag(url){
-      const img=$("flag");
-      if(!url){ img.classList.add("hidden"); img.removeAttribute("src"); return; }
-      img.src=url; img.classList.remove("hidden");
+  function openMenu(){
+    menu.style.display = "block";
+  }
+  function closeMenu(){
+    menu.style.display = "none";
+  }
+  function toggleMenu(){
+    if(menu.style.display === "block") closeMenu();
+    else openMenu();
+  }
+
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  // close menu if clicking outside
+  document.addEventListener("click", (e) => {
+    const inside = menu.contains(e.target) || menuBtn.contains(e.target);
+    if(!inside) closeMenu();
+  });
+
+  // MODAL
+  const modal = document.getElementById("modal");
+  const modalBox = document.getElementById("modalBox");
+
+  function openModal(html){
+    modalBox.innerHTML = html;
+    modal.style.display = "flex";
+  }
+  function closeModal(){
+    modal.style.display = "none";
+  }
+  modal.addEventListener("click", (e) => {
+    if(e.target === modal) closeModal();
+  });
+
+  // PAGE HANDLERS
+  function openPage(page){
+    closeMenu();
+    if(page === "home"){
+      closeModal();
+      return;
     }
-
-    function setPanel({title,name,type,html,flagUrl}){
-      $("title").textContent = title ?? "Ready";
-      $("cName").textContent = name ?? "—";
-      $("cType").textContent = type ?? "—";
-      $("details").innerHTML = html ?? "—";
-      setFlag(flagUrl || null);
+    if(page === "about"){
+      openModal(`
+        <h3>About Founder</h3>
+        <p><b>Himanshu Kumar</b> — Creator of MapCrown.</p>
+        <p>MapCrown is built for geography learning and exam preparation (UPSC, NDA, CDS, SSC). Clean map exploration + fast revision.</p>
+        <p><b>Location:</b> Muzaffarpur</p>
+        <button class="closeBtn" type="button" onclick="(${closeModal.toString()})()">Close</button>
+      `);
+      return;
     }
-
-    // Satellite map
-    const map = L.map("map").setView([20,78],3);
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"}).addTo(map);
-    L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}).addTo(map);
-
-    const DATA = {
-      countries: "/data/countries.min.json",
-      states: "/data/states_provinces.min.json",
-      cities: "/data/cities_major.min.json",
-      rivers: "/data/rivers.min.json",
-      mountains: "/data/mountains_peaks.min.json"
-    };
-
-    const layers = { countries:null, states:null, cities:null, rivers:null, mountains:null };
-    let selectedLayer=null;
-    let selectedInfo=null;
-    const factCursor = new Map();
-
-    function resetSelected(){
-      if(selectedLayer && selectedLayer.__resetStyle) selectedLayer.__resetStyle();
-      selectedLayer=null; selectedInfo=null;
-      $("btnFacts").disabled=true;
+    if(page === "contact"){
+      openModal(`
+        <h3>Contact</h3>
+        <p>For support or feedback, email:</p>
+        <p><a href="mailto:support@mapcrown.online">support@mapcrown.online</a></p>
+        <button class="closeBtn" type="button" onclick="(${closeModal.toString()})()">Close</button>
+      `);
+      return;
     }
-    function clearAll(){
-      resetSelected();
-      Object.values(layers).forEach(l=>{ if(l && map.hasLayer(l)) map.removeLayer(l); });
-    }
+  }
 
-    function polyStyle(){ return {weight:1,color:"#6aa9ff",fillColor:"#2be2ff",fillOpacity:.10}; }
-    function lineStyle(){ return {weight:2,color:"#2be2ff",opacity:.85}; }
+  document.querySelectorAll("[data-page]").forEach(btn=>{
+    btn.addEventListener("click", ()=>openPage(btn.dataset.page));
+  });
+</script>
 
-    function nameFromProps(p){
-      return p?.name || p?.NAME || p?.admin || p?.ADMIN || p?.name_en || p?.Name || "Unknown";
-    }
-
-    function normalize(name){
-      const m = {
-        "United States of America":"United States",
-        "Russian Federation":"Russia",
-        "Viet Nam":"Vietnam",
-        "Côte d’Ivoire":"Ivory Coast",
-        "Côte d'Ivoire":"Ivory Coast",
-        "Czechia":"Czech Republic"
-      };
-      return m[name] || name;
-    }
-
-    async function wikiSummary(name){
-      try{
-        const fixed = normalize(name);
-        const url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(fixed);
-        const r = await fetch(url,{cache:"no-store"});
-        if(!r.ok) return null;
-        const d = await r.json();
-        return {
-          title:d.title,
-          extract:d.extract,
-          image:d.thumbnail?.source || null,
-          page:d.content_urls?.desktop?.page || null
-        };
-      }catch{return null;}
-    }
-
-    async function restCountry(name){
-      try{
-        async function call(full){
-          const url = `https://restcountries.com/v3.1/name/${encodeURIComponent(name)}${full?"?fullText=true":""}`;
-          const r = await fetch(url,{cache:"no-store"});
-          if(!r.ok) return null;
-          const a = await r.json();
-          return a?.[0] || null;
-        }
-        let c = await call(true);
-        if(!c) c = await call(false);
-        if(!c) return null;
-
-        const capital = c.capital?.[0] || "—";
-        const region = c.region || "—";
-        const population = typeof c.population==="number" ? c.population.toLocaleString() : "—";
-        const flagUrl = c.flags?.png || c.flags?.svg || null;
-
-        let currency="—";
-        if(c.currencies){
-          const codes = Object.keys(c.currencies);
-          if(codes.length){
-            const code = codes[0];
-            currency = `${c.currencies[code]?.name || code} (${code})`;
-          }
-        }
-        return {capital,region,population,currency,flagUrl};
-      }catch{return null;}
-    }
-
-    function pickFacts(info){
-      const facts=[];
-      if(info?.wiki?.extract){
-        const sents = info.wiki.extract.split(/(?<=[.!?])\s+/).filter(Boolean);
-        sents.slice(0,4).forEach(s=>facts.push(s));
-      }
-      if(info?.rc?.capital && info.rc.capital!=="—") facts.push(`Capital city is ${info.rc.capital}.`);
-      if(info?.rc?.currency && info.rc.currency!=="—") facts.push(`Currency used: ${info.rc.currency}.`);
-      if(!facts.length) facts.push("No facts available.");
-      return facts;
-    }
-
-    $("btnFacts").addEventListener("click", ()=>{
-      if(!selectedInfo) return;
-      const key = `${selectedInfo.kind}:${selectedInfo.name}`;
-      const facts = pickFacts(selectedInfo);
-      const i = (factCursor.get(key) ?? 0) % facts.length;
-      factCursor.set(key, i+1);
-
-      setPanel({
-        title:"Amazing Facts",
-        name:selectedInfo.name,
-        type:selectedInfo.kind,
-        flagUrl:selectedInfo.rc?.flagUrl || selectedInfo.wiki?.image || null,
-        html:`<div style="font-size:15px;line-height:1.6"><b>✨ Fact:</b> ${esc(facts[i])}</div>` +
-             (selectedInfo.wiki?.page ? `<div style="margin-top:10px;"><a target="_blank" href="${selectedInfo.wiki.page}">📖 Read more on Wikipedia</a></div>` : "")
-      });
-    });
-
-    function makeSelectableGeo(geo, kind){
-      const isLine = kind==="rivers";
-      const base = isLine ? lineStyle() : polyStyle();
-
-      return L.geoJSON(geo,{
-        style:()=>base,
-        onEachFeature:(feature,layer)=>{
-          layer.__resetStyle = ()=>layer.setStyle(base);
-
-          layer.on("click", async ()=>{
-            resetSelected();
-            selectedLayer=layer;
-
-            if(isLine) layer.setStyle({weight:4,color:"#7aa7ff",opacity:1});
-            else layer.setStyle({weight:3,color:"#2be2ff",fillOpacity:.22});
-            if(layer.bringToFront) layer.bringToFront();
-
-            const p = feature.properties || {};
-            const name = nameFromProps(p);
-
-            // Countries: fetch real details
-            if(kind==="countries"){
-              setPanel({title:"Loading…",name,type:"Country",html:`Loading details for <b>${esc(name)}</b>…`,flagUrl:null});
-
-              const cacheKey = "mc_country_"+name.toLowerCase();
-              const cached = sessionStorage.getItem(cacheKey);
-              if(cached){
-                const info = JSON.parse(cached);
-                selectedInfo = info;
-                $("btnFacts").disabled=false;
-                renderCountry(info);
-                return;
-              }
-
-              const [wiki, rc] = await Promise.all([wikiSummary(name), restCountry(name)]);
-              const info = {kind:"Country", name, wiki, rc};
-              sessionStorage.setItem(cacheKey, JSON.stringify(info));
-              selectedInfo = info;
-              $("btnFacts").disabled=false;
-              renderCountry(info);
-              return;
-            }
-
-            // Other categories: show properties from your geojson
-            selectedInfo = {kind:kind.slice(0,-1), name, wiki:null, rc:null};
-            $("btnFacts").disabled=false;
-
-            const rows = [];
-            const allow = new Set(
-              kind==="states"
-                ? ["name","NAME","name_en","admin","ADMIN","iso_3166_2","postal","type","TYPE"]
-                : kind==="mountains"
-                ? ["name","NAME","name_en","elev","ELEV","elevation","height","range","RANGE","country","COUNTRY","admin","ADMIN"]
-                : kind==="rivers"
-                ? ["name","NAME","name_en","featurecla","FEATURECLA","name_alt","NAME_ALT","note","NOTE","scalerank","SCALERANK"]
-                : ["name","NAME","name_en"]
-            );
-
-            for(const [k,v] of Object.entries(p)){
-              if(!allow.has(k)) continue;
-              if(v===null||v===undefined) continue;
-              const s=String(v).trim();
-              if(!s) continue;
-              rows.push(`<div><b>${esc(k)}:</b> ${esc(s)}</div>`);
-            }
-
-            setPanel({
-              title:name,
-              name,
-              type:kind.slice(0,-1),
-              html: rows.length ? rows.join("") : "<div style='opacity:.75'>No extra fields in this dataset.</div>",
-              flagUrl:null
-            });
-          });
-        }
-      });
-    }
-
-    function renderCountry(info){
-      const wiki = info.wiki;
-      const rc = info.rc;
-
-      const img = wiki?.image
-        ? `<img src="${esc(wiki.image)}" style="width:100%;border-radius:12px;margin:10px 0;border:1px solid rgba(255,255,255,.12)"/>`
-        : "";
-
-      const top = rc ? `
-        <div><b>Capital:</b> ${esc(rc.capital)}</div>
-        <div><b>Currency:</b> ${esc(rc.currency)}</div>
-        <div><b>Region:</b> ${esc(rc.region)}</div>
-        <div><b>Population:</b> ${esc(rc.population)}</div>
-      ` : `<div style="opacity:.8">No RestCountries match for this name.</div>`;
-
-      const wikiText = wiki?.extract
-        ? `<div style="margin-top:10px;line-height:1.6">${esc(wiki.extract)}</div>`
-        : `<div style="opacity:.8">No Wikipedia summary found for this name.</div>`;
-
-      const link = wiki?.page
-        ? `<div style="margin-top:10px;"><a target="_blank" href="${wiki.page}">📖 Read more on Wikipedia</a></div>`
-        : "";
-
-      setPanel({
-        title: info.name,
-        name: info.name,
-        type: "Country",
-        flagUrl: rc?.flagUrl || null,
-        html: img + top + wikiText + link
-      });
-    }
-
-    async function ensureLayer(key){
-      if(layers[key]) return;
-      const geo = await (await fetch(DATA[key], {cache:"no-store"})).json();
-
-      if(key==="cities"){
-        const cluster = L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50});
-
-        const cityLayer = L.geoJSON(geo,{
-          pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:5,color:"#2be2ff",weight:2,fillColor:"#7aa7ff",fillOpacity:.35}),
-          onEachFeature:(feature,layer)=>{
-            const p = feature.properties||{};
-            const name = p.name || p.NAME || p.name_en || p.city || "Unknown City";
-            const country = p.country || p.ADMIN || p.admin || p.iso_a2 || p.ISO_A2 || "—";
-
-            layer.__resetStyle=()=>layer.setStyle({radius:5,color:"#2be2ff",weight:2,fillColor:"#7aa7ff",fillOpacity:.35});
-            layer.on("click", ()=>{
-              resetSelected();
-              selectedLayer=layer;
-              layer.setStyle({radius:8,weight:3,fillOpacity:.55});
-              map.setView(layer.getLatLng(), Math.max(map.getZoom(),7), {animate:true});
-
-              selectedInfo = {kind:"City", name, wiki:null, rc:null};
-              $("btnFacts").disabled=false;
-
-              setPanel({title:name, name, type:"City", html:`<div><b>Country:</b> ${esc(country)}</div>`, flagUrl:null});
-            });
-          }
-        });
-
-        cluster.addLayer(cityLayer);
-        layers.cities = cluster;
-        return;
-      }
-
-      layers[key] = makeSelectableGeo(geo, key);
-    }
-
-    async function showCategory(key){
-      clearAll();
-      setPanel({title:"Loading…",name:"—",type:"—",html:`Loading ${key}…`,flagUrl:null});
-      try{
-        await ensureLayer(key);
-        map.addLayer(layers[key]);
-        dbg("Loaded: " + DATA[key]);
-        setPanel({title:key.toUpperCase(),name:"—",type:"—",html:"Now click on the map to see details.",flagUrl:null});
-      }catch(e){
-        console.error(e);
-        dbg("");
-        setError(`Could not load ${DATA[key]}. Make sure file exists.`);
-      }
-    }
-
-    $("category").addEventListener("change", ()=>showCategory($("category").value));
-
-    // -------- Subscribe popup (demo “sent”) --------
-    const subModal = $("subModal");
-    function openModal(m){ m.classList.remove("hidden"); }
-    function closeModal(m){ m.classList.add("hidden"); }
-
-    $("btnSubscribe").addEventListener("click", ()=>openModal(subModal));
-    $("closeSub").addEventListener("click", ()=>closeModal(subModal));
-    subModal.addEventListener("click", (e)=>{ if(e.target===subModal) closeModal(subModal); });
-
-    $("subSend").addEventListener("click", ()=>{
-      const email = $("subEmail").value.trim();
-      if(!email){ $("subMsg").textContent = "❌ Enter a valid email"; return; }
-      $("subMsg").textContent = "✅ Sent! Please check your email (and Spam) to confirm.";
-      // NOTE: This is only UI “sent”. To actually store emails, you need Brevo hosted form or backend.
-    });
-
-    // auto popup 10 sec first time
-    (function(){
-      const KEY="mc_sub_popup_seen_v1";
-      if(localStorage.getItem(KEY)==="1") return;
-      setTimeout(()=>{ openModal(subModal); localStorage.setItem(KEY,"1"); }, 10000);
-    })();
-
-    // -------- Help popup --------
-    const helpModal = $("helpModal");
-    $("btnHelp").addEventListener("click", ()=>openModal(helpModal));
-    $("closeHelp").addEventListener("click", ()=>closeModal(helpModal));
-    helpModal.addEventListener("click", (e)=>{ if(e.target===helpModal) closeModal(helpModal); });
-
-    // Boot
-    showCategory("countries");
-  </script>
 </body>
 </html>
