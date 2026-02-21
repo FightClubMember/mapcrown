@@ -807,3 +807,150 @@ document.addEventListener("DOMContentLoaded", () => {
   // ✅ Auto open on first visit
   setTimeout(() => openTour(false), 800);
 });
+(function tutorialBootstrap(){
+  // Hard proof in console
+  console.log("Tutorial module loaded ✅");
+
+  const KEY = "mapcrown_seen_tutorial_v2";
+
+  function qs(id){ return document.getElementById(id); }
+  function show(el){ el.classList.remove("hidden"); }
+  function hide(el){ el.classList.add("hidden"); }
+
+  // Run after everything is ready
+  window.addEventListener("load", () => {
+    const btnHelp = qs("btnHelp");
+    const overlay = qs("tourOverlay");
+    const spotlight = qs("tourSpotlight");
+    const card = qs("tourCard");
+    const tTitle = qs("tourTitle");
+    const tMeta = qs("tourMeta");
+    const tText = qs("tourText");
+    const tDots = qs("tourDots");
+    const bNext = qs("tourNext");
+    const bBack = qs("tourBack");
+    const bSkip = qs("tourSkip");
+
+    // If anything missing, show a visible error
+    const missing = [];
+    if (!btnHelp) missing.push("btnHelp");
+    if (!overlay) missing.push("tourOverlay");
+    if (!spotlight) missing.push("tourSpotlight");
+    if (!card) missing.push("tourCard");
+    if (!tTitle) missing.push("tourTitle");
+    if (!tMeta) missing.push("tourMeta");
+    if (!tText) missing.push("tourText");
+    if (!tDots) missing.push("tourDots");
+    if (!bNext) missing.push("tourNext");
+    if (!bBack) missing.push("tourBack");
+    if (!bSkip) missing.push("tourSkip");
+
+    if (missing.length){
+      alert("Tutorial cannot start. Missing IDs: " + missing.join(", "));
+      console.warn("Missing tutorial IDs:", missing);
+      return;
+    }
+
+    const steps = [
+      { title:"Welcome to MapCrown", text:"Use this map to learn geography for UPSC/NDA/CDS/SSC.", el:()=>document.querySelector(".brand") },
+      { title:"Choose Category", text:"Switch between Countries, States, Cities, Rivers, Mountains.", el:()=>qs("category") },
+      { title:"Explore on Map", text:"Click any item on map to see details in panel.", el:()=>qs("map") },
+      { title:"Amazing Facts", text:"After selecting an item, click ✨ Facts to read interesting facts.", el:()=>qs("btnFacts") },
+      { title:"Replay Guide", text:"Click ❓ Help anytime to replay this guide.", el:()=>qs("btnHelp") },
+    ];
+
+    let i = 0;
+
+    function setDots(){
+      tDots.innerHTML = "";
+      for (let k=0;k<steps.length;k++){
+        const d = document.createElement("div");
+        d.className = "tourDot" + (k===i ? " active":"");
+        tDots.appendChild(d);
+      }
+    }
+
+    function place(target){
+      const r = target.getBoundingClientRect();
+      const pad = 10;
+
+      const x = Math.max(10, r.left - pad);
+      const y = Math.max(10, r.top - pad);
+      const w = Math.min(window.innerWidth - 20, r.width + pad*2);
+      const h = Math.min(window.innerHeight - 20, r.height + pad*2);
+
+      spotlight.style.left = x+"px";
+      spotlight.style.top = y+"px";
+      spotlight.style.width = w+"px";
+      spotlight.style.height = h+"px";
+
+      const cardW = Math.min(420, window.innerWidth*0.92);
+      const margin = 12;
+
+      let cx = Math.max(margin, Math.min(window.innerWidth - cardW - margin, x));
+      let cy = y + h + margin;
+
+      if (cy + 220 > window.innerHeight){
+        cy = Math.max(margin, y - 220 - margin);
+      }
+
+      card.style.left = cx+"px";
+      card.style.top = cy+"px";
+    }
+
+    function render(){
+      const s = steps[i];
+      tTitle.textContent = s.title;
+      tText.textContent = s.text;
+      tMeta.textContent = `Step ${i+1}/${steps.length}`;
+      bBack.disabled = (i===0);
+      bNext.textContent = (i===steps.length-1) ? "Finish" : "Next";
+      setDots();
+
+      const el = s.el();
+      if (el){
+        el.scrollIntoView?.({ behavior:"smooth", block:"center" });
+        setTimeout(()=>place(el), 220);
+      }
+    }
+
+    function open(force){
+      if (!force && localStorage.getItem(KEY)==="1") return;
+      show(overlay);
+      overlay.setAttribute("aria-hidden","false");
+      i = 0;
+      render();
+    }
+
+    function close(save){
+      hide(overlay);
+      overlay.setAttribute("aria-hidden","true");
+      if (save) localStorage.setItem(KEY,"1");
+    }
+
+    // Bind events
+    btnHelp.addEventListener("click", () => open(true));
+    bSkip.addEventListener("click", () => close(true));
+    bNext.addEventListener("click", () => {
+      if (i>=steps.length-1) return close(true);
+      i++; render();
+    });
+    bBack.addEventListener("click", () => {
+      if (i<=0) return;
+      i--; render();
+    });
+
+    overlay.addEventListener("click", (e)=>{
+      if (e.target === overlay) close(true);
+    });
+
+    window.addEventListener("resize", ()=>{
+      if (!overlay.classList.contains("hidden")) render();
+    });
+
+    // Auto show first time
+    setTimeout(()=>open(false), 900);
+
+    console.log("Tutorial ready ✅");
+  });
+})();
