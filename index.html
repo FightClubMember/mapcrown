@@ -4,22 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- SEO -->
-  <title>MapCrown - World Map Explorer, Quiz & Geography Learning</title>
-  <meta name="description" content="MapCrown is an interactive geography learning website for UPSC, NDA, CDS, SSC. Explore countries, states, cities, rivers and mountains with quiz & amazing facts." />
-  <meta name="keywords" content="mapcrown, world map explorer, geography quiz, upsc geography, nda geography, cds geography, ssc geography, countries map, states map, cities map, rivers map, mountains map, map learning" />
+  <title>MapCrown • Geo Explorer</title>
+  <meta name="description" content="MapCrown is an interactive map learning website for UPSC, NDA, CDS, SSC. Explore countries, states, cities, rivers and mountains with details, quiz and facts." />
   <meta name="author" content="Himanshu Kumar" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://mapcrown.online/" />
 
-  <meta property="og:title" content="MapCrown - World Map Explorer & Quiz" />
-  <meta property="og:description" content="Explore countries, states, cities, rivers and mountains. Practice with quizzes and amazing facts." />
-  <meta property="og:url" content="https://mapcrown.online/" />
+  <meta property="og:title" content="MapCrown • Geo Explorer" />
+  <meta property="og:description" content="Explore countries, states, cities, rivers and mountains with details, quiz and facts." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://mapcrown.online/preview.png" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://mapcrown.online/preview.png" />
+  <meta property="og:url" content="https://mapcrown.online/" />
 
   <link rel="stylesheet" href="style.css" />
 
@@ -36,7 +30,7 @@
       <div class="brand">👑 MapCrown</div>
     </div>
 
-    <!-- Desktop nav -->
+    <!-- Desktop nav (hidden on mobile via CSS) -->
     <nav class="topNav">
       <button class="navLink" data-nav="home" type="button">Home</button>
       <button class="navLink" data-nav="contact" type="button">Contact Us</button>
@@ -52,7 +46,7 @@
         <option value="ssc">SSC</option>
       </select>
 
-      <label class="toggle" id="indiaToggle">
+      <label class="toggle" id="indiaToggle" title="Show India-only features">
         <input id="indiaFocus" type="checkbox" />
         <span>India Focus</span>
       </label>
@@ -66,12 +60,8 @@
       </select>
 
       <button id="btnFacts" disabled>✨ Facts</button>
-      <button id="btnQuiz">Quiz</button>
-      <button id="btnExplore" class="active">Explore</button>
 
-      <button id="btnHelp" class="ghostBtn" type="button" title="How to use">❓ Help</button>
-
-      <!-- Mobile dropdown -->
+      <!-- Mobile menu (hidden on desktop via CSS) -->
       <div class="mobileMenuWrap">
         <button id="mMenuBtn" class="iconBtn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
         <div id="mMenu" class="mobileMenu hidden">
@@ -108,12 +98,9 @@
             <h3>📌 Details</h3>
             <img id="flag" class="flag hidden" alt="Flag">
           </div>
-          <div id="details" class="details">Pick a category, then click on map to see details…</div>
-        </div>
-
-        <div id="quizBox" class="quiz hidden">
-          <h3>🧠 Quiz</h3>
-          <p class="miniText">MCQ mode will be shown here (your existing quiz logic can stay).</p>
+          <div id="details" class="details">
+            Pick a category, then click on map to see details…
+          </div>
         </div>
 
         <p class="hint">
@@ -124,14 +111,6 @@
       </div>
     </aside>
   </main>
-
-  <section class="seoText">
-    <h1>MapCrown: World Map Explorer & Geography Quiz</h1>
-    <p>
-      Explore <b>countries, states, cities, rivers and mountains</b>. Designed for
-      <b>UPSC, NDA, CDS, SSC</b> map-based preparation.
-    </p>
-  </section>
 
   <footer class="footer">
     <div class="footerLeft">
@@ -169,26 +148,6 @@
     </div>
   </div>
 
-  <!-- Pro onboarding -->
-  <div id="tourOverlay" class="tourOverlay hidden" aria-hidden="true">
-    <div id="tourSpotlight" class="tourSpotlight"></div>
-    <div id="tourCard" class="tourCard" role="dialog" aria-modal="true">
-      <div class="tourTop">
-        <div class="tourTitle" id="tourTitle">Welcome</div>
-        <button id="tourSkip" class="tourGhost" type="button">Skip</button>
-      </div>
-      <div class="tourMeta" id="tourMeta">Step 1/6</div>
-      <div class="tourText" id="tourText">—</div>
-      <div class="tourFooter">
-        <div class="tourDots" id="tourDots"></div>
-        <div class="tourBtns">
-          <button id="tourBack" class="tourGhost" type="button">Back</button>
-          <button id="tourNext" class="tourPrimary" type="button">Next</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -196,7 +155,7 @@
   <script src="app.js"></script>
 
   <script>
-    // mobile details panel
+    // Mobile details bottom-sheet toggle
     const panel = document.getElementById("panel");
     const btn = document.getElementById("panelToggle");
     btn?.addEventListener("click", () => panel.classList.toggle("open"));
