@@ -654,3 +654,102 @@ UI.indiaFocus.addEventListener("change", ()=> {
 /* ---------- Start ---------- */
 setHeader("", "");
 switchCategory(UI.category.value);
+/* =========================
+   PRO ONBOARDING / TUTORIAL
+   ========================= */
+(function tour(){
+  const TOUR_KEY = "mapcrown_tour_done";
+
+  const steps = [
+    { t:"Welcome to MapCrown", d:"Learn geography for UPSC/NDA/CDS/SSC using an interactive map.", el:()=>document.querySelector(".brand") },
+    { t:"Pick Category", d:"Choose Countries / States / Cities / Rivers / Mountains.", el:()=>document.getElementById("category") },
+    { t:"India Focus", d:"Turn ON India Focus for India-only practice.", el:()=>document.getElementById("indiaToggle") },
+    { t:"Click on Map", d:"Tap any feature on the map to see clean details in the panel.", el:()=>document.getElementById("map") },
+    { t:"Amazing Facts", d:"After selecting an item, click ✨ Facts for interesting facts.", el:()=>document.getElementById("btnFacts") },
+    { t:"Replay Anytime", d:"Use ❓ Help to replay this tutorial whenever you want.", el:()=>document.getElementById("btnHelp") },
+  ];
+
+  let i = 0;
+
+  function setDots(){
+    if (!UI.tourDots) return;
+    UI.tourDots.innerHTML = "";
+    for (let k=0;k<steps.length;k++){
+      const dot = document.createElement("div");
+      dot.className = "tourDot" + (k===i ? " active" : "");
+      UI.tourDots.appendChild(dot);
+    }
+  }
+
+  function place(target){
+    const r = target.getBoundingClientRect();
+    const pad = 10;
+    const x = Math.max(10, r.left - pad);
+    const y = Math.max(10, r.top - pad);
+    const w = Math.min(window.innerWidth - 20, r.width + pad*2);
+    const h = Math.min(window.innerHeight - 20, r.height + pad*2);
+
+    UI.tourSpotlight.style.left = x + "px";
+    UI.tourSpotlight.style.top = y + "px";
+    UI.tourSpotlight.style.width = w + "px";
+    UI.tourSpotlight.style.height = h + "px";
+
+    const cardW = Math.min(420, window.innerWidth*0.92);
+    const margin = 10;
+    let cx = Math.min(window.innerWidth - cardW - margin, x);
+    cx = Math.max(margin, cx);
+
+    const below = y + h + margin;
+    const above = y - margin;
+    const cy = (below + 190 < window.innerHeight) ? below : Math.max(margin, above - 190);
+
+    UI.tourCard.style.left = cx + "px";
+    UI.tourCard.style.top = cy + "px";
+  }
+
+  function show(){
+    const s = steps[i];
+    UI.tourTitle.textContent = s.t;
+    UI.tourText.textContent = s.d;
+    UI.tourMeta.textContent = `Step ${i+1}/${steps.length}`;
+    setDots();
+
+    UI.tourBack.disabled = (i===0);
+    UI.tourNext.textContent = (i===steps.length-1) ? "Finish" : "Next";
+
+    const el = s.el();
+    if (!el) return;
+
+    el.scrollIntoView?.({ block:"center", behavior:"smooth" });
+    setTimeout(()=>place(el), 180);
+  }
+
+  function open(force=false){
+    if (!UI.tourOverlay) return;
+    if (!force && localStorage.getItem(TOUR_KEY)) return;
+
+    UI.tourOverlay.classList.remove("hidden");
+    i = 0;
+    show();
+  }
+
+  function close(save=true){
+    if (!UI.tourOverlay) return;
+    UI.tourOverlay.classList.add("hidden");
+    if (save) localStorage.setItem(TOUR_KEY, "1");
+  }
+
+  UI.tourNext?.addEventListener("click", ()=>{ if (i>=steps.length-1) return close(true); i++; show(); });
+  UI.tourBack?.addEventListener("click", ()=>{ if (i<=0) return; i--; show(); });
+  UI.tourSkip?.addEventListener("click", ()=>close(true));
+
+  // Replay tutorial anytime
+  UI.btnHelp?.addEventListener("click", ()=>open(true));
+
+  window.addEventListener("resize", ()=>{
+    if (UI.tourOverlay && !UI.tourOverlay.classList.contains("hidden")) show();
+  });
+
+  // Auto-run only once
+  window.addEventListener("load", ()=> setTimeout(()=>open(false), 700));
+})();
