@@ -161,6 +161,29 @@
     const btn = document.getElementById("panelToggle");
     btn?.addEventListener("click", () => panel.classList.toggle("open"));
   </script>
+<!-- Pro Onboarding / Tutorial -->
+<div id="tourOverlay" class="tourOverlay hidden" aria-hidden="true">
+  <div id="tourSpotlight" class="tourSpotlight"></div>
+
+  <div id="tourCard" class="tourCard" role="dialog" aria-modal="true">
+    <div class="tourTop">
+      <div class="tourTitle" id="tourTitle">Welcome</div>
+      <button id="tourSkip" class="tourGhost" type="button">Skip</button>
+    </div>
+
+    <div class="tourMeta" id="tourMeta">Step 1/6</div>
+    <div class="tourText" id="tourText">—</div>
+
+    <div class="tourFooter">
+      <div class="tourDots" id="tourDots"></div>
+      <div class="tourBtns">
+        <button id="tourBack" class="tourGhost" type="button">Back</button>
+        <button id="tourNext" class="tourPrimary" type="button">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
+
 
