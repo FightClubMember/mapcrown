@@ -1,863 +1,645 @@
-/* MapCrown (clean build)
-   - Desktop: top links
-   - Mobile: dropdown menu
-   - Bottom sheet details on mobile
-   - Explore categories + clean details
-   - Facts (Wikipedia) only on click, Close/Next
-   - Quiz: Map / Topic / PYQ / Daily (10)
-   - Exam Mode + India Focus
-*/
+// =========================
+// MapCrown - FULL app.js
+// =========================
 
-const DATA_FILES = {
-  countries: "data/countries.min.json",
-  states: "data/states_provinces.min.json",
-  cities: "data/cities_major.min.json",
-  rivers: "data/rivers.min.json",
-  mountains: "data/mountains_peaks.min.json",
+// ---------- DOM ----------
+const elCategory = document.getElementById("category");
+const elExamMode = document.getElementById("examMode");
+const elIndiaFocus = document.getElementById("indiaFocus");
+const elModeText = document.getElementById("modeText");
+
+const titleEl = document.getElementById("title");
+const cNameEl = document.getElementById("cName");
+const cTypeEl = document.getElementById("cType");
+const detailsEl = document.getElementById("details");
+const flagEl = document.getElementById("flag");
+
+const btnFacts = document.getElementById("btnFacts");
+const btnHelp = document.getElementById("btnHelp");
+
+const factsModal = document.getElementById("factsModal");
+const factsTitle = document.getElementById("factsTitle");
+const factsMeta = document.getElementById("factsMeta");
+const factsBox = document.getElementById("factsBox");
+const closeFacts = document.getElementById("closeFacts");
+const nextFact = document.getElementById("nextFact");
+
+const infoModal = document.getElementById("infoModal");
+const infoTitle = document.getElementById("infoTitle");
+const infoBody = document.getElementById("infoBody");
+const infoClose = document.getElementById("infoClose");
+
+// Mobile menu fix
+const mMenuBtn = document.getElementById("mMenuBtn");
+const mMenu = document.getElementById("mMenu");
+const mobileMenuWrap = document.getElementById("mobileMenuWrap");
+
+// ---------- Helpers ----------
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function safeStr(v){
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
+
+function pick(obj, keys){
+  for (const k of keys){
+    const v = obj?.[k];
+    if (v !== null && v !== undefined && String(v).trim() !== "") return v;
+  }
+  return "";
+}
+
+function fmtNum(v){
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "";
+  return n.toLocaleString();
+}
+
+function isIndiaFeature(props){
+  const name = safeStr(pick(props, ["admin", "name", "name_en", "name_long", "region", "province", "state"])).toLowerCase();
+  const admin0 = safeStr(pick(props, ["adm0name", "country", "sovereignt", "admin0"])).toLowerCase();
+  return name.includes("india") || admin0.includes("india");
+}
+
+function capitalize(s){
+  s = safeStr(s);
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+// ---------- Detail mapping (clean UI) ----------
+const FIELD_MAP = {
+  countries: [
+    ["Capital", ["capital", "capital_en", "cap", "capitale"]],
+    ["Continent", ["continent", "region_un", "continent"]],
+    ["Region", ["region", "subregion", "subregion_en"]],
+    ["Population", ["pop_est", "population"]],
+    ["Area (km²)", ["area_km2", "area"]],
+    ["Currency", ["currency", "currency_name"]],
+    ["ISO Code", ["iso_a2", "iso_a3", "iso3"]],
+    ["Timezones", ["timezones", "tz"]]
+  ],
+  states: [
+    ["Country", ["adm0name", "country", "admin"]],
+    ["State/Province", ["name", "name_en", "name_alt"]],
+    ["Type", ["type", "engtype_1", "type_en"]],
+    ["Region", ["region", "region_cod"]],
+    ["Postal/Code", ["postal", "postal_code", "iso_3166_2"]],
+    ["Capital", ["capital", "cap"]]
+  ],
+  cities: [
+    ["Country", ["adm0name", "country", "sov0name"]],
+    ["State/Region", ["adm1name", "admin1", "region"]],
+    ["City Type", ["featurecla", "type", "class"]],
+    ["Population", ["pop_max", "population"]],
+    ["Rank", ["scalerank", "rank"]],
+    ["Coordinates", ["lat", "latitude", "y", "lon", "longitude", "x"]]
+  ],
+  rivers: [
+    ["Country/Region", ["adm0name", "country", "region"]],
+    ["River Name", ["name", "name_en", "name_alt"]],
+    ["Length (km)", ["length_km", "length"]],
+    ["Basin", ["basin", "drainage"]],
+    ["Mouth", ["mouth", "mouth_name"]],
+    ["Source", ["source", "source_name"]]
+  ],
+  mountains: [
+    ["Country/Region", ["adm0name", "country", "region"]],
+    ["Peak Name", ["name", "name_en", "name_alt"]],
+    ["Elevation (m)", ["elevation", "elev_m", "elev"]],
+    ["Range", ["range", "mountain_range"]],
+    ["Type", ["type", "featurecla"]],
+    ["Coordinates", ["lat", "latitude", "y", "lon", "longitude", "x"]]
+  ]
 };
 
-const els = {
-  category: document.getElementById("category"),
-  examMode: document.getElementById("examMode"),
-  indiaFocus: document.getElementById("indiaFocus"),
+function buildDetailsHTML(category, props){
+  const rows = FIELD_MAP[category] || [];
+  const parts = [];
 
-  btnFacts: document.getElementById("btnFacts"),
-  btnDaily: document.getElementById("btnDaily"),
-  btnQuiz: document.getElementById("btnQuiz"),
-  btnExplore: document.getElementById("btnExplore"),
+  // Special formatting for coordinates if available
+  let lat = pick(props, ["lat", "latitude", "y"]);
+  let lon = pick(props, ["lon", "longitude", "x"]);
 
-  title: document.getElementById("title"),
-  cName: document.getElementById("cName"),
-  cType: document.getElementById("cType"),
-  modeText: document.getElementById("modeText"),
-  details: document.getElementById("details"),
-  flag: document.getElementById("flag"),
+  parts.push(`<ul>`);
+  for (const [label, keys] of rows){
+    let val = pick(props, keys);
 
-  quizBox: document.getElementById("quizBox"),
-  quizMode: document.getElementById("quizMode"),
-  topicPick: document.getElementById("topicPick"),
-  quizModeText: document.getElementById("quizModeText"),
-  qText: document.getElementById("qText"),
-  qMsg: document.getElementById("qMsg"),
-  scoreEl: document.getElementById("score"),
-  dailyProgress: document.getElementById("dailyProgress"),
-  mcqBtns: Array.from(document.querySelectorAll(".mcqBtn")),
+    if (label.includes("Population")) val = fmtNum(val);
+    if (label.includes("Area")) val = fmtNum(val);
 
-  factsModal: document.getElementById("factsModal"),
-  closeFacts: document.getElementById("closeFacts"),
-  nextFact: document.getElementById("nextFact"),
-  factsBox: document.getElementById("factsBox"),
-  factsTitle: document.getElementById("factsTitle"),
-  factsMeta: document.getElementById("factsMeta"),
-
-  infoModal: document.getElementById("infoModal"),
-  infoTitle: document.getElementById("infoTitle"),
-  infoBody: document.getElementById("infoBody"),
-  infoClose: document.getElementById("infoClose"),
-
-  mMenuBtn: document.getElementById("mMenuBtn"),
-  mMenu: document.getElementById("mMenu"),
-};
-
-let currentKey = "countries";
-let mode = "explore";
-let selected = null; // { typeKey, typeLabel, name, props, latlng }
-let score = 0;
-
-let factsState = { list: [], idx: 0, forKey: "" };
-
-let q = null;
-let daily = { active:false, idx:0, total:10, seed:"", questions:[] };
-
-const geoCache = new Map();
-const poolCache = new Map();
-
-let polygonLayer = null;
-let pointLayer = null;
-let clusterLayer = null;
-
-/* ---------- helpers ---------- */
-const normalize = (s) => String(s || "").trim().toLowerCase();
-const safeVal = (v) => {
-  if (v === null || v === undefined || v === "") return "—";
-  if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
-};
-const fmtNum = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : "—");
-
-function setPanel(name="—", type="—"){
-  els.title.textContent = name === "—" ? "Select something" : name;
-  els.cName.textContent = name;
-  els.cType.textContent = type;
-}
-
-function renderDetailsRows(rows){
-  els.details.innerHTML = rows.map(([k,v]) => `
-    <div class="detailsRow">
-      <div class="detailsKey">${k}</div>
-      <div class="detailsVal">${v}</div>
-    </div>
-  `).join("");
-}
-
-function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function shuffle(arr){
-  for (let i=arr.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
-}
-
-function getNameFromProps(p){
-  return (
-    p?.name || p?.NAME || p?.Name ||
-    p?.name_en || p?.NAME_EN ||
-    p?.nameascii || p?.NAMEASCII ||
-    p?.name_long || p?.NAME_LONG ||
-    p?.admin || p?.ADMIN ||
-    p?.adm0name || p?.ADM0NAME ||
-    p?.city || p?.CITY ||
-    p?.river || p?.RIVER ||
-    "Unknown"
-  );
-}
-
-function clearMapLayers(){
-  if (polygonLayer){ map.removeLayer(polygonLayer); polygonLayer=null; }
-  if (clusterLayer){ map.removeLayer(clusterLayer); clusterLayer=null; }
-  if (pointLayer){ map.removeLayer(pointLayer); pointLayer=null; }
-}
-
-function styleFor(key){
-  if (key === "countries") return { color:"#5aa7ff", weight:1, fillOpacity:0.18 };
-  if (key === "states") return { color:"#ffd166", weight:1, fillOpacity:0.10 };
-  if (key === "rivers") return { color:"#4cc9f0", weight:2, opacity:0.85 };
-  return undefined;
-}
-
-async function loadGeo(key){
-  if (geoCache.has(key)) return geoCache.get(key);
-  const path = DATA_FILES[key];
-  const res = await fetch(path);
-  if (!res.ok) throw new Error(`Missing file: ${path}`);
-  const geo = await res.json();
-  geoCache.set(key, geo);
-  return geo;
-}
-
-/* ---------- India focus filter (best effort) ---------- */
-function isIndiaFeature(key, props){
-  const admin = String(props?.admin || props?.ADMIN || props?.adm0name || props?.ADM0NAME || "").toLowerCase();
-  const country = String(props?.country || props?.COUNTRY || "").toLowerCase();
-  const iso = String(props?.iso_a2 || props?.ISO_A2 || props?.iso_a3 || props?.ISO_A3 || "").toLowerCase();
-  return admin.includes("india") || country.includes("india") || iso === "in" || iso === "ind";
-}
-
-/* ---------- clean details (non-countries) ---------- */
-function showNonCountryDetails(typeKey, typeLabel, clickedName, props, latlng){
-  els.flag.classList.add("hidden");
-  els.flag.src = "";
-
-  const rows = [];
-  rows.push(["Type", typeLabel]);
-  rows.push(["Name", clickedName]);
-  if (latlng) rows.push(["Coordinates", `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}`]);
-
-  if (typeKey === "cities"){
-    const country = props?.adm0name || props?.ADM0NAME || props?.admin || props?.ADMIN;
-    const pop = props?.pop_max ?? props?.POP_MAX ?? props?.population ?? props?.POP;
-    if (country) rows.push(["Country", safeVal(country)]);
-    if (pop !== undefined) rows.push(["Population", safeVal(pop)]);
-  }
-
-  if (typeKey === "states"){
-    const country = props?.admin || props?.ADMIN || props?.adm0name || props?.ADM0NAME;
-    if (country) rows.push(["Country", safeVal(country)]);
-  }
-
-  if (typeKey === "rivers"){
-    const cls = props?.featurecla ?? props?.FEATURECLA;
-    const num = props?.rivernum ?? props?.RIVERNUM;
-    const len = props?.length_km ?? props?.LENGTH_KM ?? props?.length ?? props?.LENGTH;
-    if (cls) rows.push(["Feature Class", safeVal(cls)]);
-    if (num !== undefined) rows.push(["River No", safeVal(num)]);
-    if (len !== undefined) rows.push(["Length", safeVal(len)]);
-  }
-
-  if (typeKey === "mountains"){
-    const elev = props?.elev ?? props?.ELEV ?? props?.elevation ?? props?.ELEVATION;
-    if (elev !== undefined) rows.push(["Elevation", safeVal(elev)]);
-  }
-
-  renderDetailsRows(rows);
-
-  // Raw data (expand)
-  if (props && typeof props === "object"){
-    const rawKeys = Object.keys(props).sort((a,b)=>a.localeCompare(b));
-    const rawHtml = rawKeys.map(k => `
-      <div class="detailsRow">
-        <div class="detailsKey">${k}</div>
-        <div class="detailsVal">${safeVal(props[k])}</div>
-      </div>
-    `).join("");
-
-    els.details.insertAdjacentHTML("beforeend", `
-      <details style="margin-top:10px;">
-        <summary style="cursor:pointer; opacity:.85;">Raw Data (all keys)</summary>
-        <div style="margin-top:10px; border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:10px; background:rgba(255,255,255,.03);">
-          ${rawHtml}
-        </div>
-      </details>
-    `);
-  }
-}
-
-/* ---------- countries (RestCountries API) ---------- */
-async function loadCountryFromAPI(countryName){
-  try{
-    let url = `https://restcountries.com/v3.1/name/${encodeURIComponent(countryName)}?fullText=true`;
-    let res = await fetch(url);
-    let data = await res.json();
-    if (!Array.isArray(data) || !data.length){
-      url = `https://restcountries.com/v3.1/name/${encodeURIComponent(countryName)}?fullText=false`;
-      res = await fetch(url);
-      data = await res.json();
+    if (label === "Coordinates"){
+      // try both in one line
+      if (lat && lon) val = `${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
+      else val = "";
     }
-    return Array.isArray(data) ? data[0] : null;
-  } catch {
-    return null;
+
+    if (safeStr(val)) {
+      parts.push(`<li><b>${label}:</b> ${escapeHtml(String(val))}</li>`);
+    }
   }
-}
+  parts.push(`</ul>`);
 
-async function showCountryDetails(countryName){
-  renderDetailsRows([["Type","COUNTRY"],["Name",countryName],["Status","Loading details…"]]);
-
-  const c = await loadCountryFromAPI(countryName);
-  if (!c){
-    renderDetailsRows([["Type","COUNTRY"],["Name",countryName],["Error","Couldn’t load details (name mismatch / internet)."]]);
-    els.flag.classList.add("hidden");
-    return;
+  // If nothing found, show minimal safe
+  if (parts.length <= 2){
+    return `<div>No clean details found for this feature.</div>`;
   }
-
-  const flagUrl = c.flags?.png || c.flags?.svg || "";
-  if (flagUrl){
-    els.flag.src = flagUrl;
-    els.flag.classList.remove("hidden");
-  } else {
-    els.flag.classList.add("hidden");
-  }
-
-  renderDetailsRows([
-    ["Type","COUNTRY"],
-    ["Name", c.name?.common || countryName],
-    ["Capital", safeVal(c.capital?.[0])],
-    ["Region", safeVal(c.region)],
-    ["Subregion", safeVal(c.subregion)],
-    ["Population", typeof c.population === "number" ? fmtNum(c.population) : "—"],
-    ["Area", typeof c.area === "number" ? `${fmtNum(Math.round(c.area))} km²` : "—"],
-    ["Currencies", c.currencies ? Object.values(c.currencies).map(x=>x?.name).filter(Boolean).join(", ") : "—"],
-    ["Languages", c.languages ? Object.values(c.languages).join(", ") : "—"],
-    ["Timezones", c.timezones ? c.timezones.join(", ") : "—"],
-    ["Code", safeVal(c.cca2)]
-  ]);
+  return parts.join("");
 }
 
-/* ---------- Facts (Wikipedia summary) ---------- */
-async function wikipediaSummary(title){
-  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-  const res = await fetch(url, { headers: { "Accept":"application/json" }});
-  if (!res.ok) return null;
-  const j = await res.json();
-  if (!j || !j.extract) return null;
-  return j.extract;
+function escapeHtml(str){
+  return str
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
-function toSentences(text){
-  return (text || "")
-    .replace(/\s+/g," ")
-    .split(/(?<=[.!?])\s+/)
-    .map(s=>s.trim())
-    .filter(s=>s.length >= 40);
-}
+// ---------- Map ----------
+const map = L.map("map", {
+  zoomControl: true,
+  preferCanvas: true,
+  minZoom: 2,
+  maxZoom: 10,
+  worldCopyJump: true
+}).setView([20, 0], 2);
 
-async function buildFacts(sel){
-  const name = sel.name;
-  let extract = await wikipediaSummary(name);
+// lock bounds (no infinite drag)
+const worldBounds = L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180));
+map.setMaxBounds(worldBounds);
+map.on("drag", () => map.panInsideBounds(worldBounds, { animate:false }));
 
-  if (!extract && sel.typeKey === "rivers") extract = await wikipediaSummary(`${name} River`);
-  if (!extract && sel.typeKey === "mountains") extract = await wikipediaSummary(`${name} Mountain`);
-  if (!extract && sel.typeKey === "cities") extract = await wikipediaSummary(`${name} (city)`);
-
-  const facts = [];
-  if (extract){
-    const s = toSentences(extract).slice(0, 8);
-    if (s.length) facts.push(...s.map(x => `✨ ${x}`));
-  } else {
-    facts.push(`🤷 Wikipedia page not found for "${name}" (dataset name mismatch).`);
-  }
-
-  if (sel.latlng) facts.push(`📍 Approx location: ${sel.latlng[0].toFixed(2)}°, ${sel.latlng[1].toFixed(2)}°`);
-  return Array.from(new Set(facts)).slice(0, 10);
-}
-
-function openFacts(){
-  els.factsModal.classList.remove("hidden");
-}
-function closeFacts(){
-  els.factsModal.classList.add("hidden");
-}
-function showFact(){
-  if (!factsState.list.length){
-    els.factsBox.textContent = "No facts. Select something then click Facts.";
-    els.factsMeta.textContent = "—";
-    return;
-  }
-  els.factsBox.textContent = factsState.list[factsState.idx];
-  els.factsMeta.textContent = `Fact ${factsState.idx + 1} / ${factsState.list.length}`;
-}
-els.closeFacts.addEventListener("click", closeFacts);
-els.nextFact.addEventListener("click", () => {
-  if (!factsState.list.length) return;
-  factsState.idx = (factsState.idx + 1) % factsState.list.length;
-  showFact();
-});
-els.btnFacts.addEventListener("click", async () => {
-  openFacts();
-  if (!selected){
-    els.factsTitle.textContent = "No selection";
-    factsState = { list: [], idx:0, forKey:"" };
-    els.factsBox.textContent = "Select something on the map first.";
-    els.factsMeta.textContent = "—";
-    return;
-  }
-  const key = `${selected.typeKey}:${selected.name}`;
-  els.factsTitle.textContent = selected.name;
-
-  if (factsState.forKey === key && factsState.list.length){
-    showFact();
-    return;
-  }
-
-  els.factsBox.textContent = "Loading facts…";
-  els.factsMeta.textContent = "Loading…";
-  const list = await buildFacts(selected);
-  factsState = { list, idx:0, forKey:key };
-  showFact();
-});
-
-/* ---------- Map init ---------- */
-const map = L.map("map", { zoomControl:true, preferCanvas:true }).setView([20,0], 2);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 7,
-  attribution: "&copy; OpenStreetMap",
+  maxZoom: 19,
+  attribution: "&copy; OpenStreetMap contributors"
 }).addTo(map);
 
-async function showCategory(key){
-  currentKey = key;
-  selected = null;
-  els.btnFacts.disabled = true;
-  closeFacts();
-  factsState = { list:[], idx:0, forKey:"" };
+// layers
+let activeLayer = null;
+let activeCategory = "countries";
 
-  setPanel("Loading…", key.toUpperCase());
-  els.flag.classList.add("hidden");
-  renderDetailsRows([["Status","Loading dataset…"]]);
-  clearMapLayers();
+const layers = {
+  countries: null,
+  states: null,
+  rivers: null,
+  mountains: null,
+  cities: null
+};
 
-  const geo = await loadGeo(key);
-  const indiaOn = !!els.indiaFocus.checked;
-
-  const feats = (geo.features || []).filter(f => {
-    if (!indiaOn) return true;
-    if (key === "countries") return true;
-    return isIndiaFeature(key, f.properties);
-  });
-  const filtered = { ...geo, features: feats };
-
-  if (key === "cities"){
-    clusterLayer = L.markerClusterGroup({ chunkedLoading:true, removeOutsideVisibleBounds:true });
-    const step = feats.length > 12000 ? 3 : 1;
-
-    for (let i=0;i<feats.length;i+=step){
-      const f = feats[i];
-      const name = getNameFromProps(f.properties);
-      const coords = f.geometry?.coordinates;
-      if (!coords || coords.length < 2) continue;
-      const latlng = [coords[1], coords[0]];
-
-      const m = L.circleMarker(latlng, { radius:3, weight:1, fillOpacity:0.85 });
-      m.bindTooltip(name, { sticky:true, opacity:0.95 });
-
-      m.on("click", () => {
-        setPanel(name, "CITY");
-        map.setView(latlng, 6);
-        showNonCountryDetails("cities", "CITY", name, f.properties, latlng);
-
-        selected = { typeKey:"cities", typeLabel:"CITY", name, props:f.properties, latlng };
-        els.btnFacts.disabled = false;
-
-        if (mode === "quiz" && els.quizMode.value === "map") checkClickAnswer(name);
-      });
-
-      clusterLayer.addLayer(m);
-    }
-    map.addLayer(clusterLayer);
-    setPanel("Ready", "CITIES");
-    renderDetailsRows([["Tip","Click a city → Details → Facts"]]);
-    return;
-  }
-
-  if (key === "mountains"){
-    pointLayer = L.layerGroup();
-    const step = feats.length > 12000 ? 2 : 1;
-
-    for (let i=0;i<feats.length;i+=step){
-      const f = feats[i];
-      const name = getNameFromProps(f.properties);
-      const coords = f.geometry?.coordinates;
-      if (!coords || coords.length < 2) continue;
-      const latlng = [coords[1], coords[0]];
-
-      const m = L.circleMarker(latlng, { radius:4, weight:1, fillOpacity:0.85 });
-      m.bindTooltip(name, { sticky:true, opacity:0.95 });
-
-      m.on("click", () => {
-        setPanel(name, "MOUNTAIN");
-        map.setView(latlng, 6);
-        showNonCountryDetails("mountains", "MOUNTAIN", name, f.properties, latlng);
-
-        selected = { typeKey:"mountains", typeLabel:"MOUNTAIN", name, props:f.properties, latlng };
-        els.btnFacts.disabled = false;
-
-        if (mode === "quiz" && els.quizMode.value === "map") checkClickAnswer(name);
-      });
-
-      pointLayer.addLayer(m);
-    }
-    map.addLayer(pointLayer);
-    setPanel("Ready", "MOUNTAINS");
-    renderDetailsRows([["Tip","Click a mountain → Details → Facts"]]);
-    return;
-  }
-
-  // polygons/lines
-  polygonLayer = L.geoJSON(filtered, {
-    style: styleFor(key),
-    onEachFeature: (feature, layer) => {
-      const name = getNameFromProps(feature.properties);
-      layer.bindTooltip(name, { sticky:true, opacity:0.95 });
-
-      layer.on("click", async () => {
-        setPanel(name, key.toUpperCase());
-        try{ if (layer.getBounds) map.fitBounds(layer.getBounds(), { padding:[20,20] }); } catch {}
-
-        if (key === "countries") await showCountryDetails(name);
-        else showNonCountryDetails(key, key.toUpperCase(), name, feature.properties, null);
-
-        selected = { typeKey:key, typeLabel:key.toUpperCase(), name, props:feature.properties, latlng:null };
-        els.btnFacts.disabled = false;
-
-        if (mode === "quiz" && els.quizMode.value === "map") checkClickAnswer(name);
-      });
-    }
-  }).addTo(map);
-
-  setPanel("Ready", key.toUpperCase());
-  renderDetailsRows([["Tip","Click something → Details → Facts"]]);
-
-  if (mode === "quiz") newQuestion();
-}
-
-/* ---------- Pools for quiz ---------- */
-async function getPool(key){
-  if (poolCache.has(key)) return poolCache.get(key);
-  const geo = await loadGeo(key);
-  const feats = geo?.features || [];
-  const all = [];
-  const india = [];
-  for (const f of feats){
-    const nm = getNameFromProps(f.properties);
-    if (!nm || nm === "Unknown") continue;
-    all.push(nm);
-    if (isIndiaFeature(key, f.properties)) india.push(nm);
-  }
-  const uniq = (arr) => Array.from(new Set(arr));
-  const out = { all: uniq(all), india: uniq(india) };
-  poolCache.set(key, out);
-  return out;
-}
-
-/* ---------- Quiz ---------- */
-const PYQ_BANK = [
-  { q:"Which is the highest mountain in the world?", a:"Mount Everest", o:["K2","Kangchenjunga","Mount Everest","Lhotse"] },
-  { q:"Which is the largest ocean?", a:"Pacific Ocean", o:["Indian Ocean","Atlantic Ocean","Pacific Ocean","Arctic Ocean"] },
-  { q:"Which latitude passes through the middle of India?", a:"Tropic of Cancer", o:["Equator","Prime Meridian","Tropic of Cancer","Arctic Circle"] },
-  { q:"Which is the largest country by area?", a:"Russia", o:["Canada","China","Russia","USA"] },
-  { q:"Which is the longest river (commonly in GK)?", a:"Nile", o:["Amazon","Yangtze","Nile","Mississippi"] },
-];
-
-function setQuizUI(qm){
-  const map = { map:"Map Quiz", topic:"Topic-wise", pyq:"PYQ", daily:"Daily (10)" };
-  els.quizModeText.textContent = map[qm] || "Quiz";
-  els.topicPick.classList.toggle("hidden", qm !== "topic");
-  els.dailyProgress.classList.toggle("hidden", qm !== "daily");
-}
-
-function lockMCQ(lock=true){
-  els.mcqBtns.forEach(b => b.disabled = lock);
-}
-
-function renderMCQ(options){
-  els.mcqBtns.forEach((btn, i) => {
-    btn.textContent = options[i] ?? "—";
-    btn.disabled = false;
-  });
-}
-
-function examPrompt(answer, topicKey){
-  const ex = els.examMode.value;
-  if (ex === "upsc") return `UPSC Drill (${topicKey}): Identify "${answer}"`;
-  if (ex === "ssc") return `SSC GK (${topicKey}): Choose "${answer}"`;
-  if (ex === "nda") return `NDA Drill (${topicKey}): "${answer}"`;
-  if (ex === "cds") return `CDS Drill (${topicKey}): "${answer}"`;
-  return `Select: "${answer}"`;
-}
-
-function buildMCQ(pool, answer){
-  const set = new Set([answer]);
-  while (set.size < 4) set.add(pickRandom(pool));
-  const options = shuffle(Array.from(set));
-  return { options, correctIndex: options.indexOf(answer) };
-}
-
-// daily seed (simple)
-function todayKey(){
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
-function seededRand(seedStr){
-  let h = 2166136261;
-  for (let i=0;i<seedStr.length;i++){
-    h ^= seedStr.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return function(){
-    h += 0x6D2B79F5;
-    let t = Math.imul(h ^ (h >>> 15), 1 | h);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-async function startDaily(){
-  const seed = `${todayKey()}|${els.examMode.value}|${els.indiaFocus.checked?"IN":"ALL"}`;
-  const rand = seededRand(seed);
-  const topics = ["countries","states","cities","rivers","mountains"];
-  const questions = [];
-
-  for (let i=0;i<10;i++){
-    const topicKey = topics[i % topics.length];
-    const pools = await getPool(topicKey);
-    let pool = (els.indiaFocus.checked && topicKey !== "countries") ? pools.india : pools.all;
-    if (pool.length < 20) pool = pools.all;
-    if (pool.length < 4) continue;
-
-    const answer = pool[Math.floor(rand()*pool.length)];
-    const set = new Set([answer]);
-    while (set.size < 4) set.add(pool[Math.floor(rand()*pool.length)]);
-    const options = shuffle(Array.from(set));
-    questions.push({
-      type:"daily",
-      topicKey,
-      question:`Daily Q${i+1}: Pick "${answer}" (${topicKey})`,
-      options,
-      answer,
-      correctIndex: options.indexOf(answer)
-    });
-  }
-
-  daily = { active:true, idx:0, total:10, seed, questions: questions.slice(0,10) };
-}
-
-function stopDaily(){
-  daily = { active:false, idx:0, total:10, seed:"", questions:[] };
-}
-
-async function newQuestion(){
-  const qm = els.quizMode.value;
-  setQuizUI(qm);
-  els.qMsg.textContent = "";
-  lockMCQ(false);
-
-  if (qm === "pyq"){
-    const item = pickRandom(PYQ_BANK);
-    q = { ...item, type:"pyq", correctIndex: item.o.indexOf(item.a) };
-    els.qText.textContent = item.q;
-    renderMCQ(item.o);
-    return;
-  }
-
-  if (qm === "daily"){
-    if (!daily.active) await startDaily();
-    els.dailyProgress.textContent = `Daily: ${daily.idx}/10`;
-    const cur = daily.questions[daily.idx];
-    if (!cur){
-      els.qText.textContent = "✅ Daily Challenge completed!";
-      els.qMsg.textContent = "Come back tomorrow.";
-      lockMCQ(true);
-      return;
-    }
-    q = cur;
-    els.qText.textContent = cur.question;
-    renderMCQ(cur.options);
-    return;
-  }
-
-  const topicKey = (qm === "topic") ? els.topicPick.value : currentKey;
-  const pools = await getPool(topicKey);
-  let pool = (els.indiaFocus.checked && topicKey !== "countries") ? pools.india : pools.all;
-  if (pool.length < 50) pool = pools.all;
-  if (pool.length < 4){
-    els.qText.textContent = `Not enough data for "${topicKey}".`;
-    lockMCQ(true);
-    return;
-  }
-
-  const answer = pickRandom(pool);
-  const built = buildMCQ(pool, answer);
-  q = {
-    type:"name",
-    topicKey,
-    question: examPrompt(answer, topicKey),
-    options: built.options,
-    answer,
-    correctIndex: built.correctIndex,
-    mode: qm
-  };
-  els.qText.textContent = q.question;
-  renderMCQ(q.options);
-}
-
-function applyResult(ok){
-  if (ok){
-    score += 10;
-    els.qMsg.textContent = "✅ Correct +10";
-  } else {
-    els.qMsg.textContent = `❌ Wrong. Correct: ${q?.answer || "—"}`;
-  }
-  els.scoreEl.textContent = String(score);
-}
-
-function submitMCQ(i){
-  if (!q) return;
-  lockMCQ(true);
-  const ok = i === q.correctIndex;
-  applyResult(ok);
-
-  if (els.quizMode.value === "daily" && daily.active){
-    daily.idx += 1;
-    setTimeout(newQuestion, 700);
-    return;
-  }
-  setTimeout(newQuestion, 850);
-}
-
-function checkClickAnswer(clickedName){
-  if (!q) return;
-  lockMCQ(true);
-  applyResult(normalize(clickedName) === normalize(q.answer));
-  setTimeout(newQuestion, 850);
-}
-
-els.mcqBtns.forEach(btn => {
-  btn.addEventListener("click", () => submitMCQ(Number(btn.dataset.i)));
+const cityCluster = L.markerClusterGroup({
+  chunkedLoading: true,
+  showCoverageOnHover: false,
+  disableClusteringAtZoom: 8,
+  maxClusterRadius: 50
 });
 
-/* ---------- Info modal content ---------- */
+let selected = {
+  category: null,
+  name: "",
+  props: null,
+  latlng: null
+};
+
+// ---------- Data load ----------
+const DATA_FILES = {
+  countries: "/data/countries.min.json",
+  states: "/data/states_provinces.min.json",
+  cities: "/data/cities_major.min.json",
+  rivers: "/data/rivers.min.json",
+  mountains: "/data/mountains_peaks.min.json"
+};
+
+async function loadGeoJSON(url){
+  const res = await fetch(url, { cache: "force-cache" });
+  if (!res.ok) throw new Error(`Failed to load: ${url}`);
+  return await res.json();
+}
+
+function baseStyle(category){
+  if (category === "rivers") return { color: "#5aa7ff", weight: 2, fillOpacity: 0.0 };
+  if (category === "mountains") return { color: "#d6b36a", weight: 2, fillOpacity: 0.08 };
+  if (category === "states") return { color: "#7cc4ff", weight: 1.5, fillOpacity: 0.10 };
+  return { color: "#7cc4ff", weight: 1.5, fillOpacity: 0.08 };
+}
+
+function hoverStyle(){
+  return { weight: 3, fillOpacity: 0.18 };
+}
+
+function clickSelect(feature, latlng, category){
+  const props = feature?.properties || {};
+  const name = safeStr(pick(props, ["name", "name_en", "admin", "name_long", "name_alt"])) || "Unknown";
+  selected = { category, name, props, latlng };
+
+  titleEl.textContent = "Selected";
+  cNameEl.textContent = name;
+  cTypeEl.textContent = capitalize(category);
+  elModeText.textContent = capitalize(elExamMode.value);
+
+  // Clean details
+  detailsEl.innerHTML = buildDetailsHTML(category, props);
+
+  // enable facts
+  btnFacts.disabled = false;
+
+  // flag only for countries if you have a flag url (optional)
+  flagEl.classList.add("hidden");
+}
+
+function bindFeatureEvents(layer, feature, category){
+  layer.on("mouseover", () => {
+    if (layer.setStyle) layer.setStyle(hoverStyle());
+  });
+  layer.on("mouseout", () => {
+    if (layer.setStyle) layer.setStyle(baseStyle(category));
+  });
+  layer.on("click", (e) => {
+    clickSelect(feature, e.latlng, category);
+  });
+}
+
+async function ensureLayer(category){
+  if (layers[category]) return;
+
+  const url = DATA_FILES[category];
+  if (!url) throw new Error(`No data file for ${category}`);
+
+  const geo = await loadGeoJSON(url);
+
+  // India focus filter
+  const indiaOn = !!elIndiaFocus?.checked;
+
+  if (category === "cities"){
+    // Points as markers for speed
+    cityCluster.clearLayers();
+
+    const feats = geo.features || [];
+    for (const f of feats){
+      const props = f.properties || {};
+
+      if (indiaOn && !isIndiaFeature(props)) continue;
+
+      // coords can be GeoJSON [lon, lat]
+      const coords = f.geometry?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const lon = coords[0];
+      const lat = coords[1];
+
+      const name = safeStr(pick(props, ["name", "name_en"])) || "City";
+      const marker = L.marker([lat, lon], { title: name });
+
+      marker.on("click", () => {
+        clickSelect(f, L.latLng(lat, lon), "cities");
+        map.setView([lat, lon], Math.max(map.getZoom(), 6), { animate: true });
+      });
+
+      marker.bindTooltip(name, { direction: "top", opacity: 0.9 });
+      cityCluster.addLayer(marker);
+    }
+
+    layers.cities = cityCluster;
+    return;
+  }
+
+  // Polygons/lines
+  const layer = L.geoJSON(geo, {
+    style: () => baseStyle(category),
+    filter: (f) => {
+      if (!indiaOn) return true;
+      return isIndiaFeature(f.properties || {});
+    },
+    onEachFeature: (feature, lyr) => bindFeatureEvents(lyr, feature, category)
+  });
+
+  layers[category] = layer;
+}
+
+function clearActiveLayer(){
+  if (activeLayer){
+    map.removeLayer(activeLayer);
+    activeLayer = null;
+  }
+  if (map.hasLayer(cityCluster)) map.removeLayer(cityCluster);
+}
+
+async function switchCategory(category){
+  activeCategory = category;
+  clearActiveLayer();
+
+  // show loading
+  titleEl.textContent = "Loading…";
+  detailsEl.textContent = "Loading data…";
+  btnFacts.disabled = true;
+  selected = { category:null, name:"", props:null, latlng:null };
+
+  try{
+    await ensureLayer(category);
+
+    if (category === "cities"){
+      activeLayer = layers.cities;
+      map.addLayer(activeLayer);
+    } else {
+      activeLayer = layers[category];
+      map.addLayer(activeLayer);
+      // Fit bounds for better view (optional)
+      try{
+        map.fitBounds(activeLayer.getBounds(), { padding:[20,20] });
+      } catch {}
+    }
+
+    titleEl.textContent = "Ready";
+    detailsEl.textContent = "Click on the map to see details…";
+  } catch (err){
+    titleEl.textContent = "Error";
+    detailsEl.innerHTML = `<b>Missing/incorrect GeoJSON files.</b><br>Check your /data filenames.<br><small>${escapeHtml(err.message)}</small>`;
+  }
+}
+
+// ---------- Facts (Real facts via Wikipedia REST Summary) ----------
+let factsList = [];
+let factsIndex = 0;
+
+async function wikiSummary(title){
+  // Wikipedia REST API supports CORS
+  const url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("No Wikipedia page found.");
+  return await res.json();
+}
+
+function extractFacts(text){
+  // split into sentences and pick interesting ones
+  const sentences = safeStr(text)
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length >= 30);
+
+  // take up to 8
+  return sentences.slice(0, 8);
+}
+
+async function loadFactsForSelected(){
+  if (!selected?.name) return;
+
+  const key = `facts_${selected.category}_${selected.name}`;
+  const cached = sessionStorage.getItem(key);
+  if (cached){
+    factsList = JSON.parse(cached);
+    factsIndex = 0;
+    return;
+  }
+
+  // Build better search titles per category
+  let title = selected.name;
+
+  // Common disambiguation helpers
+  if (selected.category === "rivers") title = `${selected.name} River`;
+  if (selected.category === "mountains") title = `${selected.name} mountain`;
+  if (selected.category === "states") title = `${selected.name}`;
+
+  const sum = await wikiSummary(title);
+
+  const facts = extractFacts(sum.extract || "");
+  if (!facts.length) throw new Error("No facts available.");
+
+  factsList = facts;
+  factsIndex = 0;
+  sessionStorage.setItem(key, JSON.stringify(factsList));
+}
+
+function showFact(){
+  if (!factsList.length){
+    factsBox.textContent = "No facts available.";
+    return;
+  }
+  factsBox.textContent = factsList[factsIndex] || factsList[0];
+  factsMeta.textContent = `${factsIndex + 1}/${factsList.length} • Source: Wikipedia`;
+}
+
+btnFacts?.addEventListener("click", async () => {
+  if (!selected?.name) return;
+
+  factsTitle.textContent = selected.name;
+  factsMeta.textContent = "Loading facts…";
+  factsBox.textContent = "Loading…";
+  factsModal.classList.remove("hidden");
+  factsModal.setAttribute("aria-hidden", "false");
+
+  try{
+    await loadFactsForSelected();
+    showFact();
+  } catch (e){
+    factsMeta.textContent = "Facts not found";
+    factsBox.textContent = "Try selecting a bigger/known place. (Wikipedia facts unavailable for this item.)";
+  }
+});
+
+closeFacts?.addEventListener("click", () => {
+  factsModal.classList.add("hidden");
+  factsModal.setAttribute("aria-hidden", "true");
+});
+
+nextFact?.addEventListener("click", () => {
+  if (!factsList.length) return;
+  factsIndex = (factsIndex + 1) % factsList.length;
+  showFact();
+});
+
+// ---------- Contact / About ----------
 function openInfo(title, html){
-  els.infoTitle.textContent = title;
-  els.infoBody.innerHTML = html;
-  els.infoModal.classList.remove("hidden");
+  infoTitle.textContent = title;
+  infoBody.innerHTML = html;
+  infoModal.classList.remove("hidden");
+  infoModal.setAttribute("aria-hidden", "false");
 }
-function closeInfo(){
-  els.infoModal.classList.add("hidden");
-}
-els.infoClose.addEventListener("click", closeInfo);
-els.infoModal.addEventListener("click", (e) => { if (e.target === els.infoModal) closeInfo(); });
+infoClose?.addEventListener("click", () => {
+  infoModal.classList.add("hidden");
+  infoModal.setAttribute("aria-hidden", "true");
+});
 
 function handleNav(action){
   if (action === "home"){
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top:0, behavior:"smooth" });
     return;
   }
   if (action === "contact"){
     openInfo("Contact Us", `
-      <div class="proCard">
-        <div class="muted">Feedback, feature requests, and improvement ideas are welcome.</div>
-        <div style="height:10px"></div>
-        <div class="grid2">
-          <div class="proCard">
-            <div style="font-weight:900">Email</div>
-            <div class="muted">Replace with your real email:</div>
-            <div style="margin-top:6px;"><a href="mailto:yourname@example.com">yourname@example.com</a></div>
-          </div>
-          <div class="proCard">
-            <div style="font-weight:900">Social</div>
-            <div class="muted">Add your links:</div>
-            <div style="margin-top:6px;">
-              <span class="badge">Instagram</span>
-              <span class="badge">YouTube</span>
-              <span class="badge">Telegram</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <p><b>MapCrown Support</b></p>
+      <p>For suggestions, bugs, or collaboration:</p>
+      <ul>
+        <li>Email: <b>your-email-here</b></li>
+        <li>Location: Muzaffarpur</li>
+      </ul>
     `);
     return;
   }
   if (action === "about"){
-    openInfo("About the Founder", `
-      <div class="proCard">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-          <div>
-            <div style="font-size:18px;font-weight:900;letter-spacing:.2px;">Himanshu Kumar</div>
-            <div class="muted">Founder & Creator — MapCrown</div>
-          </div>
-          <div class="badge">Muzaffarpur • India</div>
-        </div>
-
-        <div style="height:12px"></div>
-        <div style="font-size:14px;opacity:.92;">
-          MapCrown is built for learners who want geography to become a <b>daily habit</b> — especially for
-          <b>UPSC, NDA, CDS, SSC</b> and other competitive exams. The goal:
-          <b>explore faster, remember better, revise smarter</b>.
-        </div>
-
-        <div style="height:14px"></div>
-        <div class="grid2">
-          <div class="proCard">
-            <div style="font-weight:900">Mission</div>
-            <div class="muted" style="margin-top:6px;">
-              Make map learning visual, interactive, and exam-ready — so students revise with confidence.
-            </div>
-          </div>
-          <div class="proCard">
-            <div style="font-weight:900">Focus</div>
-            <div class="muted" style="margin-top:6px;">
-              Map-based revision • Details • Facts • MCQ drills • Daily practice
-            </div>
-          </div>
-        </div>
-
-        <div style="height:12px"></div>
-        <div style="font-weight:900">Built for</div>
-        <div style="margin-top:6px;">
-          <span class="badge">UPSC Prelims</span>
-          <span class="badge">NDA</span>
-          <span class="badge">CDS</span>
-          <span class="badge">SSC</span>
-          <span class="badge">GK</span>
-        </div>
-      </div>
+    openInfo("About Founder", `
+      <p><b>Himanshu Kumar</b> is building MapCrown as a geography learning platform for competitive exam preparation.</p>
+      <p><b>Focus:</b> UPSC, NDA, CDS, SSC and map-based learning.</p>
+      <p><b>Location:</b> Muzaffarpur</p>
+      <p>MapCrown aims to make geography fun, visual and easy to remember with map interaction, quizzes and facts.</p>
     `);
   }
 }
+window.handleNav = handleNav;
 
-document.querySelectorAll("[data-nav]").forEach(btn => {
+// Desktop nav clicks
+document.querySelectorAll(".navLink[data-nav]").forEach(btn=>{
   btn.addEventListener("click", () => handleNav(btn.dataset.nav));
 });
 
-/* ---------- Mobile dropdown menu ---------- */
+// Mobile menu fix: open above map
 (function mobileMenu(){
-  function close(){ els.mMenu.classList.add("hidden"); }
-  function toggle(){ els.mMenu.classList.toggle("hidden"); }
+  if (!mMenuBtn || !mMenu || !mobileMenuWrap) return;
 
-  els.mMenuBtn?.addEventListener("click", (e) => {
+  const open = () => { mMenu.classList.remove("hidden"); mMenuBtn.setAttribute("aria-expanded","true"); };
+  const close = () => { mMenu.classList.add("hidden"); mMenuBtn.setAttribute("aria-expanded","false"); };
+  const toggle = () => mMenu.classList.contains("hidden") ? open() : close();
+
+  mMenuBtn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
     e.stopPropagation();
     toggle();
   });
+  mMenu.addEventListener("pointerdown", (e) => e.stopPropagation());
 
-  document.addEventListener("click", close);
-
-  els.mMenu?.addEventListener("click", (e) => {
-    const t = e.target;
-    if (t && t.dataset && t.dataset.nav){
+  mMenu.querySelectorAll("[data-nav]").forEach(item=>{
+    item.addEventListener("click", (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
       close();
-      handleNav(t.dataset.nav);
-    }
+      handleNav(item.dataset.nav);
+    });
+  });
+
+  document.addEventListener("pointerdown", (e)=>{
+    if (!mobileMenuWrap.contains(e.target)) close();
   });
 })();
 
-/* ---------- UI events ---------- */
-els.examMode.addEventListener("change", () => {
-  const mapText = { general:"General", upsc:"UPSC", nda:"NDA", cds:"CDS", ssc:"SSC" };
-  els.modeText.textContent = mapText[els.examMode.value] || "General";
-  if (mode === "quiz") newQuestion();
-});
+// ---------- Pro Onboarding (Spotlight Tour) ----------
+(function proTour(){
+  const overlay = document.getElementById("tourOverlay");
+  const spotlight = document.getElementById("tourSpotlight");
+  const card = document.getElementById("tourCard");
+  const title = document.getElementById("tourTitle");
+  const meta = document.getElementById("tourMeta");
+  const text = document.getElementById("tourText");
+  const dots = document.getElementById("tourDots");
+  const next = document.getElementById("tourNext");
+  const back = document.getElementById("tourBack");
+  const skip = document.getElementById("tourSkip");
 
-els.indiaFocus.addEventListener("change", () => {
-  showCategory(currentKey).catch(console.error);
-  if (mode === "quiz") newQuestion();
-});
+  if (!overlay || !spotlight || !card) return;
 
-els.category.addEventListener("change", () => {
-  showCategory(els.category.value).catch(err => {
-    console.error(err);
-    setPanel("Dataset missing", "ERROR");
-    renderDetailsRows([["Error", err.message]]);
-    els.btnFacts.disabled = true;
-  });
-});
+  const steps = [
+    { t:"Welcome to MapCrown", d:"This is a map learning tool for UPSC, NDA, CDS, SSC. Let’s learn in 30 seconds.", el:()=>document.querySelector(".brand") },
+    { t:"Choose Category", d:"Select what you want to study: Countries, States, Cities, Rivers, Mountains.", el:()=>document.getElementById("category") },
+    { t:"India Focus", d:"Turn on India Focus for India-only practice (very useful for exams).", el:()=>document.getElementById("indiaToggle") },
+    { t:"Click on the map", d:"Tap/click any place. Details will appear on the right panel.", el:()=>document.getElementById("map") },
+    { t:"Amazing Facts", d:"After selecting something, click ✨ Facts to see real facts from Wikipedia.", el:()=>document.getElementById("btnFacts") },
+    { t:"Quiz", d:"Go to Quiz to test yourself with MCQ. Daily mode gives 10 questions.", el:()=>document.getElementById("btnQuiz") }
+  ];
 
-els.btnQuiz.addEventListener("click", () => {
-  mode = "quiz";
-  els.btnQuiz.classList.add("active");
-  els.btnExplore.classList.remove("active");
-  els.quizBox.classList.remove("hidden");
-  stopDaily();
-  newQuestion();
-});
+  let i = 0;
 
-els.btnExplore.addEventListener("click", () => {
-  mode = "explore";
-  els.btnExplore.classList.add("active");
-  els.btnQuiz.classList.remove("active");
-  els.quizBox.classList.add("hidden");
-});
-
-els.quizMode.addEventListener("change", () => {
-  setQuizUI(els.quizMode.value);
-  if (els.quizMode.value !== "daily") stopDaily();
-  newQuestion();
-});
-
-els.topicPick.addEventListener("change", () => {
-  if (mode === "quiz") newQuestion();
-});
-
-els.btnDaily.addEventListener("click", async () => {
-  mode = "quiz";
-  els.btnQuiz.classList.add("active");
-  els.btnExplore.classList.remove("active");
-  els.quizBox.classList.remove("hidden");
-
-  els.quizMode.value = "daily";
-  setQuizUI("daily");
-  stopDaily();
-  await startDaily();
-  await newQuestion();
-});
-
-/* ---------- boot ---------- */
-(async function init(){
-  els.modeText.textContent = "General";
-  setPanel("Loading…", "COUNTRIES");
-  try{
-    await showCategory("countries");
-  } catch (e){
-    console.error(e);
-    alert("Missing/incorrect GeoJSON files. Check /data filenames + extension .json");
+  function setDots(){
+    dots.innerHTML = "";
+    steps.forEach((_, idx)=>{
+      const d = document.createElement("div");
+      d.className = "tourDot" + (idx===i ? " active" : "");
+      dots.appendChild(d);
+    });
   }
+
+  function place(target){
+    const r = target.getBoundingClientRect();
+    const pad = 10;
+    const x = Math.max(10, r.left - pad);
+    const y = Math.max(10, r.top - pad);
+    const w = Math.min(window.innerWidth - 20, r.width + pad*2);
+    const h = Math.min(window.innerHeight - 20, r.height + pad*2);
+
+    spotlight.style.left = x + "px";
+    spotlight.style.top = y + "px";
+    spotlight.style.width = w + "px";
+    spotlight.style.height = h + "px";
+
+    const cardW = Math.min(410, window.innerWidth * 0.92);
+    const margin = 10;
+
+    let cx = Math.min(window.innerWidth - cardW - margin, x);
+    cx = Math.max(margin, cx);
+
+    const below = y + h + margin;
+    const above = y - margin;
+
+    let cy;
+    if (below + 180 < window.innerHeight) cy = below;
+    else cy = Math.max(margin, above - 180);
+
+    card.style.left = cx + "px";
+    card.style.top = cy + "px";
+  }
+
+  function show(){
+    const s = steps[i];
+    title.textContent = s.t;
+    text.textContent = s.d;
+    meta.textContent = `Step ${i+1}/${steps.length}`;
+    setDots();
+
+    back.disabled = (i === 0);
+    next.textContent = (i === steps.length - 1) ? "Finish" : "Next";
+
+    const el = s.el();
+    if (!el) return;
+
+    el.scrollIntoView?.({ block:"center", behavior:"smooth" });
+    setTimeout(()=>place(el), 180);
+  }
+
+  function open(force=false){
+    if (!force && localStorage.getItem("mapcrown_tour_done")) return;
+    overlay.classList.remove("hidden");
+    overlay.setAttribute("aria-hidden","false");
+    i = 0;
+    show();
+  }
+  function close(save=true){
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden","true");
+    if (save) localStorage.setItem("mapcrown_tour_done", "1");
+  }
+
+  next.addEventListener("click", ()=>{
+    if (i >= steps.length - 1) return close(true);
+    i++; show();
+  });
+  back.addEventListener("click", ()=>{
+    if (i <= 0) return;
+    i--; show();
+  });
+  skip.addEventListener("click", ()=>close(true));
+
+  window.addEventListener("resize", ()=>{
+    if (!overlay.classList.contains("hidden")) show();
+  });
+
+  btnHelp?.addEventListener("click", ()=>open(true));
+
+  window.addEventListener("load", ()=>{
+    setTimeout(()=>open(false), 700);
+  });
 })();
+
+// ---------- Events ----------
+elExamMode?.addEventListener("change", ()=> elModeText.textContent = capitalize(elExamMode.value));
+elIndiaFocus?.addEventListener("change", ()=> switchCategory(activeCategory));
+elCategory?.addEventListener("change", ()=> switchCategory(elCategory.value));
+
+// start
+switchCategory(activeCategory);
