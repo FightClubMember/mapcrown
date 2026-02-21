@@ -1,10 +1,10 @@
 /* ============================================================
-   MapCrown - app.js (FULL)
-   - Clean Details for Countries/States/Cities/Rivers/Mountains
-   - Robust name detection (no Unknown)
-   - Cities cluster markers
-   - Facts (Wikipedia summary) on button click only
-   - Pro onboarding + replay help button
+   MapCrown • app.js
+   - Countries: Capital+Flag+Currency+CallingCode + PM/President (live)
+   - States: India capitals (offline)
+   - Cities: no Unknown + clustering
+   - Rivers/Mountains: clean details + fallback
+   - Mobile menu fixed (only mobile)
    ============================================================ */
 
 const CONFIG = {
@@ -15,9 +15,7 @@ const CONFIG = {
     rivers: "/data/rivers.min.json",
     mountains: "/data/mountains_peaks.min.json",
   },
-  MAP: { minZoom: 2, maxZoom: 10 },
-  INDIA_KEY: "mapcrown_india_only",
-  TOUR_KEY: "mapcrown_tour_done",
+  MAP: { minZoom: 2, maxZoom: 10 }
 };
 
 const $ = (s) => document.querySelector(s);
@@ -35,9 +33,7 @@ const UI = {
   flag: $("#flag"),
 
   btnFacts: $("#btnFacts"),
-  btnHelp: $("#btnHelp"),
 
-  // modals
   infoModal: $("#infoModal"),
   infoTitle: $("#infoTitle"),
   infoBody: $("#infoBody"),
@@ -50,36 +46,20 @@ const UI = {
   closeFacts: $("#closeFacts"),
   nextFact: $("#nextFact"),
 
-  // menu
   mMenuBtn: $("#mMenuBtn"),
   mMenu: $("#mMenu"),
   mobileMenuWrap: document.querySelector(".mobileMenuWrap"),
-
-  // tour
-  tourOverlay: $("#tourOverlay"),
-  tourSpotlight: $("#tourSpotlight"),
-  tourCard: $("#tourCard"),
-  tourTitle: $("#tourTitle"),
-  tourMeta: $("#tourMeta"),
-  tourText: $("#tourText"),
-  tourDots: $("#tourDots"),
-  tourNext: $("#tourNext"),
-  tourBack: $("#tourBack"),
-  tourSkip: $("#tourSkip"),
 };
 
 function safeStr(v){ return (v===null||v===undefined) ? "" : String(v).trim(); }
 function escapeHtml(s){
   return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 function fmtNum(v){
   const n = Number(v);
-  if (!Number.isFinite(n)) return "";
+  if (!Number.isFinite(n)) return safeStr(v);
   return n.toLocaleString("en-IN");
 }
 function pick(props, keys){
@@ -91,24 +71,19 @@ function pick(props, keys){
 }
 function cap(s){ s=safeStr(s); return s? s[0].toUpperCase()+s.slice(1):""; }
 
-/* ---------- SUPER ROBUST NAME DETECTION (fixes city Unknown) ---------- */
+/* ✅ robust name detection (fixes Unknown for cities too) */
 function getFeatureName(category, props){
   const name = pick(props, [
-    // common
     "name","NAME","name_en","NAME_EN","name_long","NAME_LONG",
     "nameascii","NAMEASCII","label","LABEL","title","TITLE",
-    // country
-    "admin","ADMIN","sovereignt","SOVEREIGNT","geounit","GEOUNIT",
-    // states
-    "province","PROVINCE","state","STATE","region","REGION",
-    "adm1name","ADM1NAME",
-    // city
-    "city","CITY","town","TOWN"
+    "admin","ADMIN","sovereignt","SOVEREIGNT",
+    "adm0name","ADM0NAME","adm1name","ADM1NAME",
+    "city","CITY","town","TOWN","province","PROVINCE","state","STATE","region","REGION"
   ]);
   return safeStr(name) || "Unknown";
 }
 
-/* ---------- INDIA FILTER (best-effort) ---------- */
+/* India filter */
 function isIndia(props){
   const a = safeStr(pick(props, ["admin","ADMIN","adm0name","ADM0NAME","country","COUNTRY","sovereignt","SOVEREIGNT"])).toLowerCase();
   const iso2 = safeStr(pick(props, ["iso_a2","ISO_A2"])).toLowerCase();
@@ -116,21 +91,31 @@ function isIndia(props){
   return a.includes("india") || iso2 === "in" || iso3 === "ind";
 }
 
-/* ---------- CLEAN DETAILS MAP (works with upper/lower keys) ---------- */
+/* ✅ India state capitals (offline) */
+function getIndiaStateCapital(stateName){
+  const s = safeStr(stateName).toLowerCase();
+  const MAP = {
+    "andhra pradesh":"Amaravati","arunachal pradesh":"Itanagar","assam":"Dispur","bihar":"Patna",
+    "chhattisgarh":"Raipur","goa":"Panaji","gujarat":"Gandhinagar","haryana":"Chandigarh",
+    "himachal pradesh":"Shimla","jharkhand":"Ranchi","karnataka":"Bengaluru","kerala":"Thiruvananthapuram",
+    "madhya pradesh":"Bhopal","maharashtra":"Mumbai","manipur":"Imphal","meghalaya":"Shillong","mizoram":"Aizawl",
+    "nagaland":"Kohima","odisha":"Bhubaneswar","punjab":"Chandigarh","rajasthan":"Jaipur","sikkim":"Gangtok",
+    "tamil nadu":"Chennai","telangana":"Hyderabad","tripura":"Agartala","uttar pradesh":"Lucknow",
+    "uttarakhand":"Dehradun","west bengal":"Kolkata",
+    "andaman and nicobar islands":"Port Blair","chandigarh":"Chandigarh",
+    "dadra and nagar haveli and daman and diu":"Daman","delhi":"New Delhi",
+    "jammu and kashmir":"Srinagar (Summer), Jammu (Winter)","ladakh":"Leh",
+    "lakshadweep":"Kavaratti","puducherry":"Puducherry"
+  };
+  if (MAP[s]) return MAP[s];
+  for (const key of Object.keys(MAP)){
+    if (s.includes(key) || key.includes(s)) return MAP[key];
+  }
+  return "";
+}
+
+/* ---------- Details mapping (clean) ---------- */
 const FIELD_MAP = {
-  countries: [
-    ["Country", ["admin","ADMIN","name","NAME","name_long","NAME_LONG","sovereignt","SOVEREIGNT"]],
-    ["Capital", ["capital","CAPITAL"]],
-    ["Continent", ["continent","CONTINENT"]],
-    ["Region", ["region_un","REGION_UN","region_wb","REGION_WB","region","REGION"]],
-    ["Subregion", ["subregion","SUBREGION"]],
-    ["Population", ["pop_est","POP_EST","population","POPULATION"]],
-    ["Area (km²)", ["area_km2","AREA_KM2","area","AREA"]],
-    ["GDP (million $)", ["gdp_md","GDP_MD"]],
-    ["ISO A2", ["iso_a2","ISO_A2"]],
-    ["ISO A3", ["iso_a3","ISO_A3"]],
-    ["Currency", ["currency","CURRENCY","currency_name","CURRENCY_NAME"]],
-  ],
   states: [
     ["State/Province", ["name","NAME","name_en","NAME_EN","province","PROVINCE","state","STATE"]],
     ["Country", ["adm0name","ADM0NAME","admin","ADMIN","country","COUNTRY"]],
@@ -157,23 +142,15 @@ const FIELD_MAP = {
     ["Country/Region", ["adm0name","ADM0NAME","country","COUNTRY","region","REGION"]],
     ["Elevation (m)", ["elevation","ELEVATION","elev_m","ELEV_M","elev","ELEV"]],
     ["Range", ["range","RANGE","mountain_range","MOUNTAIN_RANGE"]],
-    ["Type", ["type","TYPE","featurecla","FEATURECLA"]],
   ],
 };
 
-/* ---------- junk keys hidden in fallback ---------- */
-const JUNK = new Set([
-  "featurecla","FEATURECLA","scalerank","SCALERANK","labelrank","LABELRANK",
-  "min_zoom","MIN_ZOOM","note","NOTE","ne_id","NE_ID","wikidataid","WIKIDATAID",
-  "name_alt","NAME_ALT"
-]);
+const JUNK = new Set(["featurecla","FEATURECLA","scalerank","SCALERANK","labelrank","LABELRANK","min_zoom","MIN_ZOOM","note","NOTE","ne_id","NE_ID","wikidataid","WIKIDATAID","name_alt","NAME_ALT"]);
 
-function buildDetailsHTML(category, props, latlng){
+function buildGenericDetailsHTML(category, props, latlng){
   const rows = FIELD_MAP[category] || [];
   const out = [];
-
-  out.push(`<div class="details">`);
-  out.push(`<ul>`);
+  out.push(`<div class="details"><ul>`);
 
   let count = 0;
   for (const [label, keys] of rows){
@@ -184,7 +161,6 @@ function buildDetailsHTML(category, props, latlng){
     if (l.includes("population") || l.includes("area") || l.includes("gdp") || l.includes("length") || l.includes("elevation")){
       val = fmtNum(val) || val;
     }
-
     out.push(`<li><b>${escapeHtml(label)}:</b> ${escapeHtml(String(val))}</li>`);
     count++;
   }
@@ -196,15 +172,14 @@ function buildDetailsHTML(category, props, latlng){
 
   out.push(`</ul>`);
 
-  // If very few mapped fields found, add fallback “Top properties”
+  // fallback if few mapped fields
   if (count < 2){
     const entries = Object.entries(props || {})
       .filter(([k,v]) => !JUNK.has(k) && safeStr(v) && String(v).length <= 80)
       .slice(0, 10);
 
     if (entries.length){
-      out.push(`<div class="fallbackTitle">More Info</div>`);
-      out.push(`<ul>`);
+      out.push(`<div style="margin-top:10px;font-weight:900;opacity:.95">More Info</div><ul>`);
       for (const [k,v] of entries){
         out.push(`<li><b>${escapeHtml(cap(k.replaceAll("_"," ")))}:</b> ${escapeHtml(String(v))}</li>`);
       }
@@ -216,7 +191,105 @@ function buildDetailsHTML(category, props, latlng){
   return out.join("");
 }
 
-/* ---------- Map setup ---------- */
+/* ---------- Country Full Details (REST Countries + Wikidata) ---------- */
+function getCountryIdFromProps(props){
+  const iso2 = safeStr(pick(props, ["iso_a2","ISO_A2"]));
+  const iso3 = safeStr(pick(props, ["iso_a3","ISO_A3"]));
+  const name = safeStr(pick(props, ["admin","ADMIN","name","NAME","name_long","NAME_LONG","sovereignt","SOVEREIGNT"]));
+  return { iso2:(iso2 && iso2 !== "-99")?iso2:"", iso3:(iso3 && iso3 !== "-99")?iso3:"", name };
+}
+async function fetchRestCountries({ iso2, iso3, name }){
+  let url = "";
+  if (iso2) url = `https://restcountries.com/v3.1/alpha/${encodeURIComponent(iso2)}`;
+  else if (iso3) url = `https://restcountries.com/v3.1/alpha/${encodeURIComponent(iso3)}`;
+  else if (name) url = `https://restcountries.com/v3.1/name/${encodeURIComponent(name)}?fullText=true`;
+  else throw new Error("No ISO/name for country");
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("REST Countries failed");
+  const data = await res.json();
+  const c = Array.isArray(data) ? data[0] : data;
+  if (!c) throw new Error("No REST Countries data");
+
+  const capital = Array.isArray(c.capital) ? c.capital[0] : (c.capital || "");
+  const flag = c.flags?.png || c.flags?.svg || "";
+  const population = c.population ?? "";
+  const area = c.area ?? "";
+  const region = c.region ?? "";
+  const subregion = c.subregion ?? "";
+
+  let currency = "";
+  if (c.currencies){
+    const k = Object.keys(c.currencies)[0];
+    if (k) currency = `${k} (${c.currencies[k]?.name || ""})`.trim();
+  }
+
+  let calling = "";
+  if (c.idd?.root){
+    const suf = Array.isArray(c.idd.suffixes) ? c.idd.suffixes[0] : "";
+    calling = `${c.idd.root}${suf || ""}`;
+  }
+
+  return { capital, flag, population, area, region, subregion, currency, calling };
+}
+async function fetchWikidataLeaders({ iso2, iso3, name }){
+  const filter = iso2
+    ? `?country wdt:P297 "${iso2.toUpperCase()}".`
+    : (iso3
+      ? `?country wdt:P298 "${iso3.toUpperCase()}".`
+      : `?country rdfs:label "${name.replace(/"/g, '\\"')}"@en.`);
+
+  const sparql = `
+    SELECT ?headOfStateLabel ?headOfGovernmentLabel WHERE {
+      ${filter}
+      OPTIONAL { ?country wdt:P35 ?headOfState. }
+      OPTIONAL { ?country wdt:P6  ?headOfGovernment. }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } LIMIT 1
+  `;
+  const url = "https://query.wikidata.org/sparql?format=json&query=" + encodeURIComponent(sparql);
+  const res = await fetch(url, { headers:{ "Accept":"application/sparql-results+json" }});
+  if (!res.ok) throw new Error("Wikidata failed");
+  const json = await res.json();
+  const row = json?.results?.bindings?.[0] || {};
+  return {
+    headOfState: row.headOfStateLabel?.value || "",
+    headOfGovernment: row.headOfGovernmentLabel?.value || ""
+  };
+}
+function buildCountryFullHTML(countryName, latlng, rest, leaders, props){
+  const rows = [];
+  rows.push(["Country", countryName || "—"]);
+  if (rest.capital) rows.push(["Capital", rest.capital]);
+  if (leaders.headOfState) rows.push(["Head of State", leaders.headOfState]);
+  if (leaders.headOfGovernment) rows.push(["Head of Government", leaders.headOfGovernment]);
+  if (rest.region) rows.push(["Region", rest.region]);
+  if (rest.subregion) rows.push(["Subregion", rest.subregion]);
+  if (rest.population) rows.push(["Population", fmtNum(rest.population)]);
+  if (rest.area) rows.push(["Area (km²)", fmtNum(rest.area)]);
+  if (rest.currency) rows.push(["Currency", rest.currency]);
+  if (rest.calling) rows.push(["Calling Code", rest.calling]);
+
+  const iso2 = safeStr(pick(props, ["iso_a2","ISO_A2"]));
+  const iso3 = safeStr(pick(props, ["iso_a3","ISO_A3"]));
+  if (iso2) rows.push(["ISO A2", iso2]);
+  if (iso3) rows.push(["ISO A3", iso3]);
+
+  if (latlng) rows.push(["Coordinates", `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`]);
+
+  return `
+    <div class="details">
+      <ul>${rows.map(([k,v])=>`<li><b>${escapeHtml(k)}:</b> ${escapeHtml(String(v))}</li>`).join("")}</ul>
+      <div style="margin-top:10px;color:rgba(233,238,252,.70);font-size:12px;line-height:1.6">
+        Source: REST Countries + Wikidata (leaders update automatically)
+      </div>
+    </div>
+  `;
+}
+
+const CountryCache = new Map(); // key -> {rest, leaders}
+
+/* ---------- Map Setup ---------- */
 const map = L.map("map", {
   zoomControl: true,
   preferCanvas: true,
@@ -234,11 +307,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
 }).addTo(map);
 
-/* ---------- Layer state ---------- */
-const cache = new Map(); // category -> geojson
-const layers = { countries:null, states:null, cities:null, rivers:null, mountains:null };
-let activeLayer = null;
-
 const cityCluster = L.markerClusterGroup({
   chunkedLoading: true,
   showCoverageOnHover: false,
@@ -246,21 +314,20 @@ const cityCluster = L.markerClusterGroup({
   maxClusterRadius: 50
 });
 
-/* ---------- Selection state ---------- */
-let selected = { category:null, name:"", props:null, latlng:null };
+/* ---------- Data Cache & Layers ---------- */
+const cache = new Map();
+const layers = { countries:null, states:null, cities:null, rivers:null, mountains:null };
+let activeLayer = null;
 
-/* ---------- UI helpers ---------- */
-function setHeader(name, type){
-  UI.title.textContent = name ? "Selected" : "Ready";
-  UI.cName.textContent = name || "—";
-  UI.cType.textContent = type || "—";
-  UI.modeText.textContent = cap(UI.examMode.value);
-}
-
-function setLoading(){
-  UI.title.textContent = "Loading…";
-  UI.details.textContent = "Loading data…";
-  UI.btnFacts.disabled = true;
+async function loadGeo(category){
+  if (cache.has(category)) return cache.get(category);
+  const url = CONFIG.DATA[category];
+  const res = await fetch(url, { cache:"force-cache" });
+  if (!res.ok) throw new Error("Failed to load: " + url);
+  const geo = await res.json();
+  if (!geo || !Array.isArray(geo.features)) throw new Error("Invalid GeoJSON: " + url);
+  cache.set(category, geo);
+  return geo;
 }
 
 function clearActiveLayer(){
@@ -269,7 +336,13 @@ function clearActiveLayer(){
   if (map.hasLayer(cityCluster)) map.removeLayer(cityCluster);
 }
 
-/* ---------- Styles ---------- */
+function setHeader(name, type){
+  UI.title.textContent = name ? "Selected" : "Ready";
+  UI.cName.textContent = name || "—";
+  UI.cType.textContent = type || "—";
+  UI.modeText.textContent = cap(UI.examMode.value);
+}
+
 function baseStyle(category){
   if (category === "rivers") return { color:"#5aa7ff", weight:2, fillOpacity:0 };
   if (category === "mountains") return { color:"#d6b36a", weight:2, fillOpacity:0.08 };
@@ -281,44 +354,77 @@ function hoverStyle(category){
   return { ...s, weight:(s.weight||2)+1, fillOpacity: Math.min(0.22, (s.fillOpacity||0.1)+0.1) };
 }
 
-/* ---------- Data load ---------- */
-async function loadGeo(category){
-  if (cache.has(category)) return cache.get(category);
+/* ---------- Selection ---------- */
+let selected = { category:null, name:"", props:null, latlng:null };
 
-  const url = CONFIG.DATA[category];
-  if (!url) throw new Error("No file for category: " + category);
+async function selectCountry(props, latlng){
+  const id = getCountryIdFromProps(props);
+  const countryName = id.name || safeStr(pick(props, ["admin","ADMIN","name","NAME"])) || "Unknown";
 
-  const res = await fetch(url, { cache:"force-cache" });
-  if (!res.ok) throw new Error("Failed to load " + url);
+  selected = { category:"countries", name:countryName, props, latlng };
+  setHeader(countryName, "Countries");
+  UI.btnFacts.disabled = false;
 
-  const geo = await res.json();
-  if (!geo || !Array.isArray(geo.features)) throw new Error("Invalid GeoJSON " + url);
+  UI.flag.classList.add("hidden");
+  UI.details.innerHTML = `<div class="details">Loading capital, flag & leaders…</div>`;
 
-  cache.set(category, geo);
-  return geo;
+  const key = (id.iso2 || id.iso3 || id.name || "").toLowerCase();
+  try{
+    if (CountryCache.has(key)){
+      const cached = CountryCache.get(key);
+      if (cached.rest?.flag){
+        UI.flag.src = cached.rest.flag;
+        UI.flag.classList.remove("hidden");
+      }
+      UI.details.innerHTML = buildCountryFullHTML(countryName, latlng, cached.rest, cached.leaders, props);
+      return;
+    }
+
+    const rest = await fetchRestCountries(id);
+    const leaders = await fetchWikidataLeaders(id);
+    CountryCache.set(key, { rest, leaders });
+
+    if (rest.flag){
+      UI.flag.src = rest.flag;
+      UI.flag.classList.remove("hidden");
+    }
+    UI.details.innerHTML = buildCountryFullHTML(countryName, latlng, rest, leaders, props);
+  } catch (e){
+    UI.flag.classList.add("hidden");
+    // fallback to whatever is in geojson
+    UI.details.innerHTML = buildGenericDetailsHTML("states", props, latlng) +
+      `<div style="margin-top:10px;color:rgba(233,238,252,.75)">Live country details not available right now.</div>`;
+  }
 }
 
-/* ---------- Click select ---------- */
-function selectFeature(category, props, latlng){
+function selectGeneric(category, props, latlng){
   const name = getFeatureName(category, props);
   selected = { category, name, props, latlng };
-
   setHeader(name, cap(category));
-  UI.details.innerHTML = buildDetailsHTML(category, props, latlng);
   UI.btnFacts.disabled = false;
+  UI.flag.classList.add("hidden");
+
+  let html = buildGenericDetailsHTML(category, props, latlng);
+
+  // ✅ add India state capital if states
+  if (category === "states"){
+    const capi = getIndiaStateCapital(name);
+    if (capi){
+      html += `<div style="margin-top:10px"><b>State Capital:</b> ${escapeHtml(capi)}</div>`;
+    }
+  }
+  UI.details.innerHTML = html;
 }
 
-/* ---------- Build layers ---------- */
+/* ---------- Ensure layer ---------- */
 async function ensureLayer(category){
   if (layers[category]) return layers[category];
 
   const geo = await loadGeo(category);
   const indiaOnly = !!UI.indiaFocus.checked;
 
-  // Cities: markers
   if (category === "cities"){
     cityCluster.clearLayers();
-
     for (const f of geo.features){
       const props = f.properties || {};
       if (indiaOnly && !isIndia(props)) continue;
@@ -326,41 +432,36 @@ async function ensureLayer(category){
       const coords = f.geometry?.coordinates;
       if (!coords || coords.length < 2) continue;
 
-      const lat = coords[1], lon = coords[0];
-      const latlng = L.latLng(lat, lon);
-
+      const latlng = L.latLng(coords[1], coords[0]);
       const name = getFeatureName("cities", props);
-      const marker = L.marker(latlng, { title:name });
 
+      const marker = L.marker(latlng, { title:name });
       marker.bindTooltip(name, { direction:"top", opacity:0.95 });
       marker.on("click", () => {
-        selectFeature("cities", props, latlng);
+        selectGeneric("cities", props, latlng);
         map.setView(latlng, Math.max(map.getZoom(), 6), { animate:true });
       });
-
       cityCluster.addLayer(marker);
     }
-
     layers.cities = cityCluster;
     return layers.cities;
   }
 
-  // Polygons/lines
   const layer = L.geoJSON(geo, {
-    filter: (f) => {
-      if (!indiaOnly) return true;
-      return isIndia(f.properties || {});
-    },
+    filter: (f) => !indiaOnly || isIndia(f.properties || {}),
     style: () => baseStyle(category),
     onEachFeature: (feature, lyr) => {
       const props = feature.properties || {};
       const nm = getFeatureName(category, props);
 
       lyr.bindTooltip(nm, { sticky:true, opacity:0.9 });
-
       lyr.on("mouseover", () => lyr.setStyle?.(hoverStyle(category)));
       lyr.on("mouseout", () => lyr.setStyle?.(baseStyle(category)));
-      lyr.on("click", (e) => selectFeature(category, props, e.latlng));
+
+      lyr.on("click", (e) => {
+        if (category === "countries") selectCountry(props, e.latlng);
+        else selectGeneric(category, props, e.latlng);
+      });
     }
   });
 
@@ -370,7 +471,11 @@ async function ensureLayer(category){
 
 /* ---------- Switch category ---------- */
 async function switchCategory(category){
-  setLoading();
+  UI.title.textContent = "Loading…";
+  UI.details.textContent = "Loading data…";
+  UI.btnFacts.disabled = true;
+  UI.flag.classList.add("hidden");
+
   clearActiveLayer();
   selected = { category:null, name:"", props:null, latlng:null };
   setHeader("", "");
@@ -380,11 +485,8 @@ async function switchCategory(category){
     activeLayer = layer;
     map.addLayer(layer);
 
-    // fit bounds for non-cities
     if (category !== "cities"){
-      try{
-        map.fitBounds(layer.getBounds(), { padding:[20,20] });
-      } catch {}
+      try{ map.fitBounds(layer.getBounds(), { padding:[20,20] }); } catch {}
     }
 
     UI.title.textContent = "Ready";
@@ -407,14 +509,12 @@ function splitFacts(text){
     .filter(s => s.length >= 30)
     .slice(0, 8);
 }
-
 async function wikiSummary(title){
   const url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title);
   const res = await fetch(url);
   if (!res.ok) throw new Error("No Wikipedia page");
   return await res.json();
 }
-
 function factTitleGuess(){
   if (!selected?.name) return "";
   if (selected.category === "rivers") return `${selected.name} River`;
@@ -457,7 +557,7 @@ UI.nextFact.addEventListener("click", () => {
   UI.factsBox.textContent = facts[factIndex];
 });
 
-/* ---------- Professional About/Contact (same style as before) ---------- */
+/* ---------- Professional About/Contact ---------- */
 function openInfo(title, html){
   UI.infoTitle.textContent = title;
   UI.infoBody.innerHTML = html;
@@ -505,7 +605,7 @@ function handleNav(action){
         </div>
         <div style="padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.05);margin-bottom:10px;">
           <b>🧠 Learning Method</b><br/>
-          Explore categories, open clean details, read facts, and practice with quizzes.
+          Explore categories, open clean details, read facts, and practice map knowledge.
         </div>
         <div style="padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.05);">
           <b>📍 Based in</b><br/>Muzaffarpur, Bihar (India)
@@ -514,119 +614,32 @@ function handleNav(action){
     `);
   }
 }
-
 document.querySelectorAll(".navLink[data-nav]").forEach(b=>{
   b.addEventListener("click", () => handleNav(b.dataset.nav));
 });
 
-/* ---------- Mobile menu (always above map) ---------- */
-(function mobileMenu(){
-  if (!UI.mMenuBtn || !UI.mMenu || !UI.mobileMenuWrap) return;
+/* ✅ Mobile Menu fix */
+(function mobileMenuFix(){
+  const btn = UI.mMenuBtn, menu = UI.mMenu, wrap = UI.mobileMenuWrap;
+  if (!btn || !menu || !wrap) return;
 
-  const open = () => { UI.mMenu.classList.remove("hidden"); UI.mMenuBtn.setAttribute("aria-expanded","true"); };
-  const close = () => { UI.mMenu.classList.add("hidden"); UI.mMenuBtn.setAttribute("aria-expanded","false"); };
-  const toggle = () => UI.mMenu.classList.contains("hidden") ? open() : close();
+  const open = () => { menu.classList.remove("hidden"); btn.setAttribute("aria-expanded","true"); };
+  const close = () => { menu.classList.add("hidden"); btn.setAttribute("aria-expanded","false"); };
 
-  UI.mMenuBtn.addEventListener("pointerdown", (e)=>{ e.preventDefault(); e.stopPropagation(); toggle(); });
-  UI.mMenu.addEventListener("pointerdown", (e)=> e.stopPropagation());
+  btn.addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (menu.classList.contains("hidden")) open(); else close();
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) close(); });
 
-  UI.mMenu.querySelectorAll("[data-nav]").forEach(item=>{
+  menu.querySelectorAll("[data-nav]").forEach(item=>{
     item.addEventListener("click", (e)=>{
       e.preventDefault(); e.stopPropagation();
       close();
       handleNav(item.dataset.nav);
     });
   });
-
-  document.addEventListener("pointerdown", (e)=>{
-    if (!UI.mobileMenuWrap.contains(e.target)) close();
-  });
-})();
-
-/* ---------- Pro onboarding (spotlight) + Help replay ---------- */
-(function tour(){
-  const steps = [
-    { t:"Welcome to MapCrown", d:"This is an interactive map learning tool for UPSC/NDA/CDS/SSC.", el:()=>document.querySelector(".brand") },
-    { t:"Pick Category", d:"Choose Countries / States / Cities / Rivers / Mountains.", el:()=>UI.category },
-    { t:"India Focus", d:"Enable India Focus for India-only practice.", el:()=>document.getElementById("indiaToggle") },
-    { t:"Click on Map", d:"Tap any feature to see clean details on the right.", el:()=>document.getElementById("map") },
-    { t:"Amazing Facts", d:"After selecting, click ✨ Facts for interesting facts.", el:()=>UI.btnFacts },
-    { t:"Help Anytime", d:"Use ❓ Help to replay this guide anytime.", el:()=>UI.btnHelp },
-  ];
-  let i = 0;
-
-  function setDots(){
-    UI.tourDots.innerHTML = "";
-    for (let k=0;k<steps.length;k++){
-      const dot = document.createElement("div");
-      dot.className = "tourDot" + (k===i ? " active" : "");
-      UI.tourDots.appendChild(dot);
-    }
-  }
-
-  function place(target){
-    const r = target.getBoundingClientRect();
-    const pad = 10;
-    const x = Math.max(10, r.left - pad);
-    const y = Math.max(10, r.top - pad);
-    const w = Math.min(window.innerWidth - 20, r.width + pad*2);
-    const h = Math.min(window.innerHeight - 20, r.height + pad*2);
-
-    UI.tourSpotlight.style.left = x + "px";
-    UI.tourSpotlight.style.top = y + "px";
-    UI.tourSpotlight.style.width = w + "px";
-    UI.tourSpotlight.style.height = h + "px";
-
-    const cardW = Math.min(420, window.innerWidth*0.92);
-    const margin = 10;
-    let cx = Math.min(window.innerWidth - cardW - margin, x);
-    cx = Math.max(margin, cx);
-
-    const below = y + h + margin;
-    const above = y - margin;
-    const cy = (below + 190 < window.innerHeight) ? below : Math.max(margin, above - 190);
-
-    UI.tourCard.style.left = cx + "px";
-    UI.tourCard.style.top = cy + "px";
-  }
-
-  function show(){
-    const s = steps[i];
-    UI.tourTitle.textContent = s.t;
-    UI.tourText.textContent = s.d;
-    UI.tourMeta.textContent = `Step ${i+1}/${steps.length}`;
-    setDots();
-
-    UI.tourBack.disabled = (i===0);
-    UI.tourNext.textContent = (i===steps.length-1) ? "Finish" : "Next";
-
-    const el = s.el();
-    if (!el) return;
-
-    el.scrollIntoView?.({ block:"center", behavior:"smooth" });
-    setTimeout(()=>place(el), 180);
-  }
-
-  function open(force=false){
-    if (!force && localStorage.getItem(CONFIG.TOUR_KEY)) return;
-    UI.tourOverlay.classList.remove("hidden");
-    i = 0;
-    show();
-  }
-
-  function close(save=true){
-    UI.tourOverlay.classList.add("hidden");
-    if (save) localStorage.setItem(CONFIG.TOUR_KEY, "1");
-  }
-
-  UI.tourNext.addEventListener("click", ()=>{ if (i>=steps.length-1) return close(true); i++; show(); });
-  UI.tourBack.addEventListener("click", ()=>{ if (i<=0) return; i--; show(); });
-  UI.tourSkip.addEventListener("click", ()=>close(true));
-
-  UI.btnHelp.addEventListener("click", ()=>open(true));
-  window.addEventListener("resize", ()=>{ if (!UI.tourOverlay.classList.contains("hidden")) show(); });
-
-  window.addEventListener("load", ()=> setTimeout(()=>open(false), 700));
 })();
 
 /* ---------- Events ---------- */
