@@ -205,3 +205,318 @@ button:disabled{opacity:.55;cursor:not-allowed}
   .topNav{display:flex}
   .mobileMenuWrap{display:none}
 }
+:root{
+  --bg1:#081326;
+  --bg2:#0c1b35;
+  --card:#0f1b33;
+  --line:rgba(255,255,255,.10);
+  --txt:#e9eefc;
+  --muted:rgba(233,238,252,.75);
+  --blue:rgba(90,167,255,1);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  background: radial-gradient(1200px 700px at 20% 0%, #0e244b 0%, var(--bg1) 55%, #050b15 100%);
+  color:var(--txt);
+}
+
+.hidden{display:none!important}
+
+.topbar{
+  position: sticky;
+  top:0;
+  z-index:40000;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  background:linear-gradient(180deg, rgba(8,19,38,.88), rgba(8,19,38,.60));
+  border-bottom:1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+
+.brand{font-weight:900; letter-spacing:.2px}
+
+.topNav{display:flex; gap:10px}
+.navLink{
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line);
+  color:var(--txt);
+  cursor:pointer;
+}
+
+.topControls{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:10px;
+  align-items:center;
+}
+
+select, button{
+  font:inherit;
+}
+
+select{
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--txt);
+}
+
+.toggle{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+}
+
+#btnFacts, #btnDaily, #btnQuiz, #btnExplore, .ghostBtn{
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--txt);
+  cursor:pointer;
+}
+#btnExplore.active{ border-color: rgba(90,167,255,.6); background:rgba(90,167,255,.10); }
+#btnFacts:disabled{ opacity:.5; cursor:not-allowed; }
+
+.iconBtn{
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.06);
+  color:var(--txt);
+  cursor:pointer;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns: 1fr 360px;
+  gap:12px;
+  padding:12px;
+}
+
+.stage{min-height:70vh}
+#map{
+  height: calc(100vh - 120px);
+  border-radius:18px;
+  border:1px solid var(--line);
+  overflow:hidden;
+}
+
+.panel{
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:rgba(15,27,51,.72);
+  backdrop-filter: blur(10px);
+  overflow:hidden;
+}
+.panelInner{ padding:14px; }
+
+.card{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  border-radius:16px;
+  padding:12px;
+}
+.krow{ display:flex; justify-content:space-between; gap:10px; padding:6px 0; }
+.k{ color:var(--muted); }
+.v{ font-weight:700; }
+
+.details{
+  color:var(--txt);
+  line-height:1.65;
+  opacity:.95;
+}
+.details ul{ margin:8px 0 0; padding-left:18px; }
+.details li{ margin:4px 0; }
+
+.cardHead{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.flag{ width:32px; height:22px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+
+.hint{ color:var(--muted); font-size:13px; line-height:1.6; margin-top:10px; }
+
+.footer{
+  padding:14px 12px;
+  border-top:1px solid var(--line);
+  background:rgba(8,19,38,.65);
+}
+.footerTitle{ font-weight:900; }
+.footerSub{ color:var(--muted); }
+
+.seoText{
+  max-width:1100px;
+  margin:0 auto;
+  padding:10px 12px;
+  color:rgba(233,238,252,.85);
+  line-height:1.8;
+}
+
+/* ✅ Mobile panel bottom-sheet */
+.mobilePanelBar{ display:none; }
+@media (max-width: 900px){
+  .layout{ grid-template-columns: 1fr; }
+  #map{ height: 62vh; }
+  .panel{
+    position:fixed;
+    left:12px; right:12px;
+    bottom:12px;
+    max-height: 70vh;
+    transform: translateY(calc(100% - 54px));
+    transition: transform .2s ease;
+    z-index:35000;
+  }
+  .panel.open{ transform: translateY(0); }
+  .mobilePanelBar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+    background:rgba(15,27,51,.85);
+  }
+  .handle{
+    width:42px; height:4px; border-radius:999px;
+    background:rgba(255,255,255,.25);
+  }
+}
+
+/* ✅ Mobile menu always above map */
+.mobileMenuWrap{ display:none; position:relative; z-index:45000; }
+.mobileMenu{
+  position:absolute;
+  right:0;
+  top:52px;
+  width:230px;
+  background:linear-gradient(180deg, rgba(15,27,51,1), rgba(11,18,32,1));
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:10px;
+  box-shadow:0 18px 60px rgba(0,0,0,.55);
+  z-index:60000;
+}
+.mobileMenu .mItem{
+  width:100%;
+  text-align:left;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.05);
+  color:var(--txt);
+  margin-bottom:8px;
+}
+.mobileMenu .mItem:last-child{ margin-bottom:0; }
+
+@media (max-width: 900px), (hover:none) and (pointer:coarse){
+  .topNav{ display:none !important; }
+  .mobileMenuWrap{ display:block !important; }
+  .mobileMenu{
+    position:fixed;
+    right:12px;
+    top:64px;
+  }
+}
+
+/* =========================
+   ✅ Pro Onboarding Tour
+========================= */
+.tourOverlay{
+  position:fixed;
+  inset:0;
+  z-index:50000;
+}
+.tourSpotlight{
+  position:fixed;
+  left:0; top:0;
+  width:0; height:0;
+  border-radius:16px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.72);
+  border: 1px solid rgba(255,255,255,.18);
+  transition: all .18s ease;
+  pointer-events:none;
+}
+.tourCard{
+  position:fixed;
+  max-width:min(410px, 92vw);
+  background:linear-gradient(180deg, rgba(15,27,51,.97), rgba(11,18,32,.97));
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  padding:14px;
+  box-shadow:0 18px 70px rgba(0,0,0,.65);
+  color:#e9eefc;
+}
+.tourTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.tourTitle{ font-weight:900; font-size:16px; }
+.tourMeta{ color:rgba(233,238,252,.7); font-size:12px; margin-bottom:8px; }
+.tourText{ font-size:14px; line-height:1.7; opacity:.95; }
+.tourFooter{ margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.tourDots{ display:flex; gap:6px; align-items:center; }
+.tourDot{ width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,.25); }
+.tourDot.active{ background:rgba(90,167,255,1); }
+.tourBtns{ display:flex; gap:10px; }
+.tourGhost{
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#e9eefc;
+  cursor:pointer;
+}
+.tourPrimary{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(90,167,255,.65);
+  background:rgba(90,167,255,.18);
+  color:#e9eefc;
+  cursor:pointer;
+}
+
+/* Modals */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.62);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:65000;
+}
+.modalCard{
+  width:min(520px, 92vw);
+  background:linear-gradient(180deg, rgba(15,27,51,.97), rgba(11,18,32,.97));
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  padding:14px;
+  box-shadow:0 18px 70px rgba(0,0,0,.65);
+}
+.modalHead{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.btnGhost{
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#e9eefc;
+  cursor:pointer;
+}
+.factsBox{ margin-top:10px; line-height:1.7; }
+.factsActions{ margin-top:12px; display:flex; justify-content:flex-end; }
+.factsActions button{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(90,167,255,.65);
+  background:rgba(90,167,255,.18);
+  color:#e9eefc;
+  cursor:pointer;
+}
